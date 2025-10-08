@@ -246,10 +246,9 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 >
                   <option value="all">Tous les types</option>
-                  <option value="Particulier">Particulier</option>
-                  <option value="Professionnel">Professionnel</option>
-                  <option value="Entreprise">Entreprise</option>
-                  <option value="Association">Association</option>
+                  <option value="Un particulier">Un particulier</option>
+                  <option value="Un installateur">Un installateur</option>
+                  <option value="Une entreprise">Une entreprise</option>
                 </select>
               </div>
             </div>
