@@ -44,7 +44,11 @@ Deno.serve(async (req: Request) => {
 
     const url = new URL(req.url);
     const formId = url.searchParams.get('form_id');
-    const typeformToken = url.searchParams.get('token') || Deno.env.get('TYPEFORM_TOKEN');
+
+    // Try to get token from: 1) query param, 2) header, 3) env variable
+    const typeformToken = url.searchParams.get('token') ||
+                          req.headers.get('X-Typeform-Token') ||
+                          Deno.env.get('TYPEFORM_TOKEN');
 
     if (!formId) {
       return new Response(
@@ -58,7 +62,10 @@ Deno.serve(async (req: Request) => {
 
     if (!typeformToken) {
       return new Response(
-        JSON.stringify({ error: 'Typeform token is required' }),
+        JSON.stringify({
+          error: 'Typeform token is required',
+          details: 'Token not found in query param, header, or environment variable'
+        }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

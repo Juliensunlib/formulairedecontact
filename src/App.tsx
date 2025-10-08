@@ -30,10 +30,11 @@ function App() {
       setError('');
       const typeformToken = import.meta.env.VITE_TYPEFORM_TOKEN;
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-typeform?form_id=${formId}&token=${typeformToken}`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-typeform?form_id=${formId}`,
         {
           headers: {
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'X-Typeform-Token': typeformToken,
           },
         }
       );
