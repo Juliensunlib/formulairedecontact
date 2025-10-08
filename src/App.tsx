@@ -249,6 +249,7 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
                   <option value="Un particulier">Un particulier</option>
                   <option value="Un installateur">Un installateur</option>
                   <option value="Une entreprise">Une entreprise</option>
+                  <option value="Une collectivité">Une collectivité</option>
                 </select>
               </div>
             </div>
