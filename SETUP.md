@@ -12,7 +12,7 @@ Votre token Typeform fonctionne correctement, mais il doit être configuré dans
 2. **Créez un nouveau secret** :
    - Cliquez sur "New secret"
    - Nom : `TYPEFORM_TOKEN`
-   - Valeur : `tfp_CjnMkWykjWYVk7HNEiEcUe2cZihfjnHPo9J9KPCpYyP6_3ssnsqdSQQTa2s`
+   - Valeur : `form`
    - Cliquez sur "Create secret"
 
 3. **L'edge function est déjà déployée** et utilisera automatiquement ce secret une fois configuré.
