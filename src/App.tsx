@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, Filter, Inbox, Clock, CheckCircle, Archive, Sun, Bell, Trash2 } from 'lucide-react';
+import { RefreshCw, Filter, Inbox, Clock, CheckCircle, Archive, Sun, Bell, Trash2, X } from 'lucide-react';
 import { ContactRequest } from './lib/supabase';
 import { ContactCard } from './components/ContactCard';
 import { ContactModal } from './components/ContactModal';
@@ -18,6 +18,7 @@ function App() {
   const [newContactsCount, setNewContactsCount] = useState(0);
   const formId = import.meta.env.VITE_TYPEFORM_FORM_ID || '';
   const [error, setError] = useState<string>('');
+  const [showConfig, setShowConfig] = useState(false);
 
   const fetchContacts = async () => {
     if (!formId) {
@@ -311,6 +312,75 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
             onClose={() => setSelectedContact(null)}
             onUpdate={fetchContacts}
           />
+        )}
+
+        {showConfig && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Configuration Typeform</h2>
+                <button
+                  onClick={() => setShowConfig(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="font-medium text-blue-900 mb-2">Comment configurer ?</h3>
+                  <ol className="text-sm text-blue-800 space-y-2 list-decimal list-inside">
+                    <li>Créez un token Typeform avec les permissions "Read responses" sur <a href="https://admin.typeform.com/account#/section/tokens" target="_blank" rel="noopener noreferrer" className="underline">cette page</a></li>
+                    <li>Trouvez l'ID de votre formulaire dans son URL (ex: https://admin.typeform.com/form/<strong>AbC123</strong>/)</li>
+                    <li>Dans Vercel, allez dans <strong>Settings → Environment Variables</strong></li>
+                    <li>Ajoutez ces variables :
+                      <ul className="ml-6 mt-2 space-y-1">
+                        <li><code className="bg-blue-100 px-2 py-0.5 rounded">VITE_TYPEFORM_TOKEN</code> : votre token</li>
+                        <li><code className="bg-blue-100 px-2 py-0.5 rounded">VITE_TYPEFORM_FORM_ID</code> : l'ID du formulaire</li>
+                      </ul>
+                    </li>
+                    <li>Redéployez votre application</li>
+                  </ol>
+                </div>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <h3 className="font-medium text-yellow-900 mb-2">Variables actuelles</h3>
+                  <div className="text-sm text-yellow-800 space-y-2">
+                    <div>
+                      <strong>VITE_TYPEFORM_FORM_ID:</strong>{' '}
+                      <code className="bg-yellow-100 px-2 py-0.5 rounded">
+                        {formId || '(non configuré)'}
+                      </code>
+                    </div>
+                    <div>
+                      <strong>VITE_TYPEFORM_TOKEN:</strong>{' '}
+                      <code className="bg-yellow-100 px-2 py-0.5 rounded">
+                        {import.meta.env.VITE_TYPEFORM_TOKEN ? '••••••••' : '(non configuré)'}
+                      </code>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <h3 className="font-medium text-red-900 mb-2">Erreur actuelle</h3>
+                  <p className="text-sm text-red-800">{error || 'Typeform API error: Forbidden'}</p>
+                  <p className="text-sm text-red-700 mt-2">
+                    Cette erreur signifie que le token est invalide, expiré, ou n'a pas les permissions nécessaires pour accéder à ce formulaire.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setShowConfig(false)}
+                  className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
