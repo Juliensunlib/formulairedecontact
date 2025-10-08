@@ -102,6 +102,10 @@ Deno.serve(async (req: Request) => {
         }
       });
 
+      // LOG pour debug - afficher tous les IDs et leurs valeurs
+      console.log('=== REPONSE ===');
+      console.log('answersMap:', JSON.stringify(answersMap, null, 2));
+
       const meta = metadataMap.get(response.token) || {
         status: 'new',
         priority: 'medium',
