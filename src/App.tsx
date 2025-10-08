@@ -16,8 +16,7 @@ function App() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [newContactsCount, setNewContactsCount] = useState(0);
-  const [formId, setFormId] = useState<string>(() => localStorage.getItem('typeform_form_id') || '');
-  const [showConfig, setShowConfig] = useState<boolean>(!localStorage.getItem('typeform_form_id'));
+  const formId = import.meta.env.VITE_TYPEFORM_FORM_ID || '';
   const [error, setError] = useState<string>('');
 
   const fetchContacts = async () => {
@@ -81,14 +80,6 @@ function App() {
     }
   }, [formId]);
 
-  const handleSaveFormId = () => {
-    if (formId.trim()) {
-      localStorage.setItem('typeform_form_id', formId.trim());
-      setShowConfig(false);
-      setLoading(true);
-      fetchContacts();
-    }
-  };
 
   useEffect(() => {
     let filtered = [...contacts];
@@ -115,7 +106,7 @@ function App() {
     total: contacts.length,
   };
 
-  if (showConfig) {
+  if (!formId) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl shadow-xl p-8 max-w-md w-full">
@@ -125,34 +116,19 @@ function App() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">SunLib</h1>
-              <p className="text-gray-600 text-sm">Configuration Typeform</p>
+              <p className="text-gray-600 text-sm">Configuration requise</p>
             </div>
           </div>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                ID du formulaire Typeform
-              </label>
-              <input
-                type="text"
-                value={formId}
-                onChange={(e) => setFormId(e.target.value)}
-                placeholder="Ex: MtEfRiYk"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-              />
-              <p className="text-xs text-gray-500 mt-2">
-                Trouvez l'ID dans l'URL de votre formulaire : typeform.com/to/<strong>VOTRE_ID</strong>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-yellow-800">
+                L'ID du formulaire Typeform n'est pas configuré. Veuillez l'ajouter dans le fichier <code className="bg-yellow-100 px-2 py-1 rounded">.env</code> :
               </p>
+              <pre className="mt-2 bg-gray-800 text-green-400 p-3 rounded text-xs overflow-x-auto">
+VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
+              </pre>
             </div>
-
-            <button
-              onClick={handleSaveFormId}
-              disabled={!formId.trim()}
-              className="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:bg-gray-400"
-            >
-              Commencer
-            </button>
           </div>
         </div>
       </div>
