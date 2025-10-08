@@ -29,19 +29,27 @@ function App() {
     try {
       setError('');
       const typeformToken = import.meta.env.VITE_TYPEFORM_TOKEN;
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-typeform?form_id=${formId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            'X-Typeform-Token': typeformToken,
-          },
-        }
-      );
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-typeform?form_id=${formId}`;
+      console.log('Fetching:', url);
+      console.log('Token present:', !!typeformToken);
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'X-Typeform-Token': typeformToken,
+        },
+      });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch');
+        const errorText = await response.text();
+        console.error('Response status:', response.status);
+        console.error('Response text:', errorText);
+        try {
+          const errorData = JSON.parse(errorText);
+          throw new Error(errorData.error || `HTTP ${response.status}: ${errorText}`);
+        } catch {
+          throw new Error(`HTTP ${response.status}: ${errorText || 'Failed to fetch'}`);
+        }
       }
 
       const result = await response.json();
