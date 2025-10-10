@@ -447,6 +447,7 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
               <AirtableModal
                 record={selectedAirtableRecord}
                 onClose={() => setSelectedAirtableRecord(null)}
+                onUpdate={fetchAirtable}
               />
             )}
           </>
