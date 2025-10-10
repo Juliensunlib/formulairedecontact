@@ -1,7 +1,6 @@
 import { X, Calendar, FileText, User, Trash2, CheckCircle2, Database } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { AirtableRecord } from '../lib/airtable';
-import { supabase } from '../lib/supabase';
+import { useState } from 'react';
+import { AirtableRecord, updateAirtableRecord } from '../lib/airtable';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
 
@@ -11,46 +10,18 @@ interface AirtableModalProps {
   onUpdate?: () => void;
 }
 
-interface AirtableMetadata {
-  status: 'new' | 'in_progress' | 'contacted' | 'completed' | 'archived';
-  priority: 'low' | 'medium' | 'high';
-  notes: string;
-  assigned_to: string;
-}
-
 export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps) {
-  const [status, setStatus] = useState<'new' | 'in_progress' | 'contacted' | 'completed' | 'archived'>('new');
-  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
-  const [notes, setNotes] = useState('');
-  const [assignedTo, setAssignedTo] = useState('');
+  const [status, setStatus] = useState<'new' | 'in_progress' | 'contacted' | 'completed' | 'archived'>(
+    (record.fields['Statut'] as string) || 'new'
+  );
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>(
+    (record.fields['Priorité'] as string) || 'medium'
+  );
+  const [notes, setNotes] = useState((record.fields['Notes internes'] as string) || '');
+  const [assignedTo, setAssignedTo] = useState((record.fields['Assigné à'] as string) || '');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadMetadata();
-  }, [record.id]);
-
-  const loadMetadata = async () => {
-    try {
-      const { data } = await supabase
-        .from('airtable_metadata')
-        .select('*')
-        .eq('airtable_record_id', record.id)
-        .maybeSingle();
-
-      if (data) {
-        setStatus(data.status);
-        setPriority(data.priority);
-        setNotes(data.notes || '');
-        setAssignedTo(data.assigned_to || '');
-      }
-    } catch (error) {
-      console.error('Error loading metadata:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
   const formatValue = (value: any): string => {
     if (value === null || value === undefined) return '-';
     if (Array.isArray(value)) return value.join(', ');
@@ -72,30 +43,12 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
   const handleSave = async () => {
     setSaving(true);
     try {
-      const payload = {
-        airtable_record_id: record.id,
-        status,
-        priority,
-        notes: notes || null,
-        assigned_to: assignedTo || null,
-        updated_at: new Date().toISOString(),
-      };
-
-      console.log('Upserting with payload:', payload);
-
-      const { data, error } = await supabase
-        .from('airtable_metadata')
-        .upsert(payload, {
-          onConflict: 'airtable_record_id'
-        })
-        .select();
-
-      if (error) {
-        console.error('Supabase error details:', error);
-        throw error;
-      }
-
-      console.log('Upsert successful:', data);
+      await updateAirtableRecord(record.id, {
+        'Statut': status,
+        'Priorité': priority,
+        'Notes internes': notes || '',
+        'Assigné à': assignedTo || '',
+      });
 
       if (onUpdate) onUpdate();
       onClose();
@@ -112,20 +65,9 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
 
     setDeleting(true);
     try {
-      const { error } = await supabase
-        .from('airtable_metadata')
-        .upsert({
-          airtable_record_id: record.id,
-          status: 'archived',
-          priority: priority || 'medium',
-          notes: notes || null,
-          assigned_to: assignedTo || null,
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'airtable_record_id'
-        });
-
-      if (error) throw error;
+      await updateAirtableRecord(record.id, {
+        'Statut': 'archived',
+      });
 
       if (onUpdate) onUpdate();
       onClose();
@@ -139,30 +81,9 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
 
   const handleQuickAction = async (newStatus: string) => {
     try {
-      const payload = {
-        airtable_record_id: record.id,
-        status: newStatus,
-        priority: priority || 'medium',
-        notes: notes || null,
-        assigned_to: assignedTo || null,
-        updated_at: new Date().toISOString(),
-      };
-
-      console.log('Quick action upsert with payload:', payload);
-
-      const { data, error } = await supabase
-        .from('airtable_metadata')
-        .upsert(payload, {
-          onConflict: 'airtable_record_id'
-        })
-        .select();
-
-      if (error) {
-        console.error('Supabase error details:', error);
-        throw error;
-      }
-
-      console.log('Quick action successful:', data);
+      await updateAirtableRecord(record.id, {
+        'Statut': newStatus,
+      });
 
       setStatus(newStatus as any);
       if (onUpdate) onUpdate();
@@ -172,8 +93,12 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
     }
   };
 
-  const mainFields = Object.entries(record.fields).slice(0, 8);
-  const otherFields = Object.entries(record.fields).slice(8);
+  const mainFields = Object.entries(record.fields)
+    .filter(([key]) => !['Statut', 'Priorité', 'Notes internes', 'Assigné à'].includes(key))
+    .slice(0, 8);
+  const otherFields = Object.entries(record.fields)
+    .filter(([key]) => !['Statut', 'Priorité', 'Notes internes', 'Assigné à'].includes(key))
+    .slice(8);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">

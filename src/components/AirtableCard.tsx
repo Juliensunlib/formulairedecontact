@@ -1,6 +1,4 @@
-import { useEffect, useState } from 'react';
 import { AirtableRecord } from '../lib/airtable';
-import { supabase } from '../lib/supabase';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
 
@@ -10,29 +8,8 @@ interface AirtableCardProps {
 }
 
 export function AirtableCard({ record, onClick }: AirtableCardProps) {
-  const [status, setStatus] = useState<'new' | 'in_progress' | 'contacted' | 'completed' | 'archived'>('new');
-  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
-
-  useEffect(() => {
-    loadMetadata();
-  }, [record.id]);
-
-  const loadMetadata = async () => {
-    try {
-      const { data } = await supabase
-        .from('airtable_metadata')
-        .select('status, priority')
-        .eq('airtable_record_id', record.id)
-        .maybeSingle();
-
-      if (data) {
-        setStatus(data.status || 'new');
-        setPriority(data.priority || 'medium');
-      }
-    } catch (error) {
-      console.error('Error loading metadata:', error);
-    }
-  };
+  const status = (record.fields['Statut'] as string) || 'new';
+  const priority = (record.fields['Priorité'] as string) || 'medium';
   const formatValue = (value: any): string => {
     if (value === null || value === undefined) return '-';
     if (Array.isArray(value)) return value.join(', ');
