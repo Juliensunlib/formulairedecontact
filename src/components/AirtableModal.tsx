@@ -72,26 +72,36 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('airtable_metadata')
-        .upsert({
-          airtable_record_id: record.id,
-          status,
-          priority,
-          notes: notes || null,
-          assigned_to: assignedTo || null,
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'airtable_record_id'
-        });
+      const payload = {
+        airtable_record_id: record.id,
+        status,
+        priority,
+        notes: notes || null,
+        assigned_to: assignedTo || null,
+        updated_at: new Date().toISOString(),
+      };
 
-      if (error) throw error;
+      console.log('Upserting with payload:', payload);
+
+      const { data, error } = await supabase
+        .from('airtable_metadata')
+        .upsert(payload, {
+          onConflict: 'airtable_record_id'
+        })
+        .select();
+
+      if (error) {
+        console.error('Supabase error details:', error);
+        throw error;
+      }
+
+      console.log('Upsert successful:', data);
 
       if (onUpdate) onUpdate();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating record:', error);
-      alert('Erreur lors de la mise à jour');
+      alert(`Erreur lors de la mise à jour: ${error.message || 'Erreur inconnue'}`);
     } finally {
       setSaving(false);
     }
@@ -129,26 +139,36 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
 
   const handleQuickAction = async (newStatus: string) => {
     try {
-      const { error } = await supabase
-        .from('airtable_metadata')
-        .upsert({
-          airtable_record_id: record.id,
-          status: newStatus,
-          priority: priority || 'medium',
-          notes: notes || null,
-          assigned_to: assignedTo || null,
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'airtable_record_id'
-        });
+      const payload = {
+        airtable_record_id: record.id,
+        status: newStatus,
+        priority: priority || 'medium',
+        notes: notes || null,
+        assigned_to: assignedTo || null,
+        updated_at: new Date().toISOString(),
+      };
 
-      if (error) throw error;
+      console.log('Quick action upsert with payload:', payload);
+
+      const { data, error } = await supabase
+        .from('airtable_metadata')
+        .upsert(payload, {
+          onConflict: 'airtable_record_id'
+        })
+        .select();
+
+      if (error) {
+        console.error('Supabase error details:', error);
+        throw error;
+      }
+
+      console.log('Quick action successful:', data);
 
       setStatus(newStatus as any);
       if (onUpdate) onUpdate();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating status:', error);
-      alert('Erreur lors de la mise à jour');
+      alert(`Erreur lors de la mise à jour: ${error.message || 'Erreur inconnue'}`);
     }
   };
 
