@@ -20,6 +20,13 @@ function App() {
   const [selectedAirtableRecord, setSelectedAirtableRecord] = useState<AirtableRecord | null>(null);
   const [airtableLoading, setAirtableLoading] = useState(false);
   const [airtableError, setAirtableError] = useState<string>('');
+  const [airtableStats, setAirtableStats] = useState({
+    new: 0,
+    in_progress: 0,
+    contacted: 0,
+    completed: 0,
+    total: 0,
+  });
 
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -80,11 +87,48 @@ function App() {
     try {
       const records = await fetchAirtableRecords();
       setAirtableRecords(records);
+      await calculateAirtableStats(records);
     } catch (error: any) {
       console.error('Error fetching Airtable:', error);
       setAirtableError(error.message || 'Erreur de chargement Airtable');
     } finally {
       setAirtableLoading(false);
+    }
+  };
+
+  const calculateAirtableStats = async (records: AirtableRecord[]) => {
+    try {
+      const { supabase } = await import('./lib/supabase');
+      const recordIds = records.map(r => r.id);
+
+      const { data: metadata } = await supabase
+        .from('airtable_metadata')
+        .select('airtable_record_id, status')
+        .in('airtable_record_id', recordIds);
+
+      const metadataMap = new Map(
+        (metadata || []).map(m => [m.airtable_record_id, m.status])
+      );
+
+      const stats = {
+        new: 0,
+        in_progress: 0,
+        contacted: 0,
+        completed: 0,
+        total: records.length,
+      };
+
+      records.forEach(record => {
+        const status = metadataMap.get(record.id) || 'new';
+        if (status === 'new') stats.new++;
+        else if (status === 'in_progress') stats.in_progress++;
+        else if (status === 'contacted') stats.contacted++;
+        else if (status === 'completed') stats.completed++;
+      });
+
+      setAirtableStats(stats);
+    } catch (error) {
+      console.error('Error calculating stats:', error);
     }
   };
 
@@ -400,6 +444,13 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
 
         {activeTab === 'airtable' && (
           <>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <StatsCard title="Nouveaux" value={airtableStats.new} icon={Inbox} color="green" />
+              <StatsCard title="En cours" value={airtableStats.in_progress} icon={Clock} color="blue" />
+              <StatsCard title="Terminés" value={airtableStats.completed} icon={CheckCircle} color="gray" />
+              <StatsCard title="Total" value={airtableStats.total} icon={Archive} color="yellow" />
+            </div>
+
             {airtableError && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
                 <div className="flex items-start gap-3">
