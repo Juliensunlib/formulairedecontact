@@ -98,18 +98,6 @@ function App() {
 
   const calculateAirtableStats = async (records: AirtableRecord[]) => {
     try {
-      const { supabase } = await import('./lib/supabase');
-      const recordIds = records.map(r => r.id);
-
-      const { data: metadata } = await supabase
-        .from('airtable_metadata')
-        .select('airtable_record_id, status')
-        .in('airtable_record_id', recordIds);
-
-      const metadataMap = new Map(
-        (metadata || []).map(m => [m.airtable_record_id, m.status])
-      );
-
       const stats = {
         new: 0,
         in_progress: 0,
@@ -119,7 +107,7 @@ function App() {
       };
 
       records.forEach(record => {
-        const status = metadataMap.get(record.id) || 'new';
+        const status = (record.fields['Statut'] as string) || 'new';
         if (status === 'new') stats.new++;
         else if (status === 'in_progress') stats.in_progress++;
         else if (status === 'contacted') stats.contacted++;
