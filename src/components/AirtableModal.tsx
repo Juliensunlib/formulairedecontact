@@ -72,38 +72,20 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { data: existing } = await supabase
+      const { error } = await supabase
         .from('airtable_metadata')
-        .select('airtable_record_id')
-        .eq('airtable_record_id', record.id)
-        .maybeSingle();
+        .upsert({
+          airtable_record_id: record.id,
+          status,
+          priority,
+          notes: notes || null,
+          assigned_to: assignedTo || null,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'airtable_record_id'
+        });
 
-      if (existing) {
-        const { error } = await supabase
-          .from('airtable_metadata')
-          .update({
-            status,
-            priority,
-            notes: notes || null,
-            assigned_to: assignedTo || null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('airtable_record_id', record.id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('airtable_metadata')
-          .insert({
-            airtable_record_id: record.id,
-            status,
-            priority,
-            notes: notes || null,
-            assigned_to: assignedTo || null,
-          });
-
-        if (error) throw error;
-      }
+      if (error) throw error;
 
       if (onUpdate) onUpdate();
       onClose();
@@ -120,33 +102,20 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
 
     setDeleting(true);
     try {
-      const { data: existing } = await supabase
+      const { error } = await supabase
         .from('airtable_metadata')
-        .select('airtable_record_id')
-        .eq('airtable_record_id', record.id)
-        .maybeSingle();
+        .upsert({
+          airtable_record_id: record.id,
+          status: 'archived',
+          priority: priority || 'medium',
+          notes: notes || null,
+          assigned_to: assignedTo || null,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'airtable_record_id'
+        });
 
-      if (existing) {
-        const { error } = await supabase
-          .from('airtable_metadata')
-          .update({
-            status: 'archived',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('airtable_record_id', record.id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('airtable_metadata')
-          .insert({
-            airtable_record_id: record.id,
-            status: 'archived',
-            priority: 'medium',
-          });
-
-        if (error) throw error;
-      }
+      if (error) throw error;
 
       if (onUpdate) onUpdate();
       onClose();
@@ -160,33 +129,20 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
 
   const handleQuickAction = async (newStatus: string) => {
     try {
-      const { data: existing } = await supabase
+      const { error } = await supabase
         .from('airtable_metadata')
-        .select('airtable_record_id')
-        .eq('airtable_record_id', record.id)
-        .maybeSingle();
+        .upsert({
+          airtable_record_id: record.id,
+          status: newStatus,
+          priority: priority || 'medium',
+          notes: notes || null,
+          assigned_to: assignedTo || null,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'airtable_record_id'
+        });
 
-      if (existing) {
-        const { error } = await supabase
-          .from('airtable_metadata')
-          .update({
-            status: newStatus,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('airtable_record_id', record.id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('airtable_metadata')
-          .insert({
-            airtable_record_id: record.id,
-            status: newStatus,
-            priority: 'medium',
-          });
-
-        if (error) throw error;
-      }
+      if (error) throw error;
 
       setStatus(newStatus as any);
       if (onUpdate) onUpdate();
