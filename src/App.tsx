@@ -1,14 +1,26 @@
 import { useEffect, useState } from 'react';
 import { RefreshCw, Filter, Inbox, Clock, CheckCircle, Archive, Sun, Bell, Trash2, X } from 'lucide-react';
 import { ContactRequest } from './lib/supabase';
+import { AirtableRecord, fetchAirtableRecords } from './lib/airtable';
 import { ContactCard } from './components/ContactCard';
 import { ContactModal } from './components/ContactModal';
+import { AirtableCard } from './components/AirtableCard';
+import { AirtableModal } from './components/AirtableModal';
 import { StatsCard } from './components/StatsCard';
+import { TabNavigation } from './components/TabNavigation';
 
 function App() {
+  const [activeTab, setActiveTab] = useState<'typeform' | 'airtable'>('typeform');
+
   const [contacts, setContacts] = useState<ContactRequest[]>([]);
   const [filteredContacts, setFilteredContacts] = useState<ContactRequest[]>([]);
   const [selectedContact, setSelectedContact] = useState<ContactRequest | null>(null);
+
+  const [airtableRecords, setAirtableRecords] = useState<AirtableRecord[]>([]);
+  const [selectedAirtableRecord, setSelectedAirtableRecord] = useState<AirtableRecord | null>(null);
+  const [airtableLoading, setAirtableLoading] = useState(false);
+  const [airtableError, setAirtableError] = useState<string>('');
+
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -62,6 +74,20 @@ function App() {
     }
   };
 
+  const fetchAirtable = async () => {
+    setAirtableLoading(true);
+    setAirtableError('');
+    try {
+      const records = await fetchAirtableRecords();
+      setAirtableRecords(records);
+    } catch (error: any) {
+      console.error('Error fetching Airtable:', error);
+      setAirtableError(error.message || 'Erreur de chargement Airtable');
+    } finally {
+      setAirtableLoading(false);
+    }
+  };
+
   const syncTypeform = async () => {
     setSyncing(true);
     try {
@@ -75,8 +101,21 @@ function App() {
     }
   };
 
+  const syncAirtable = async () => {
+    setSyncing(true);
+    try {
+      await fetchAirtable();
+      setLastUpdate(new Date());
+    } catch (error) {
+      console.error('Error syncing Airtable:', error);
+      alert('Erreur lors de la synchronisation Airtable');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   useEffect(() => {
-    if (formId) {
+    if (activeTab === 'typeform' && formId) {
       fetchContacts();
 
       const interval = setInterval(() => {
@@ -87,9 +126,19 @@ function App() {
       return () => {
         clearInterval(interval);
       };
-    }
-  }, [formId]);
+    } else if (activeTab === 'airtable') {
+      fetchAirtable();
 
+      const interval = setInterval(() => {
+        fetchAirtable();
+        setLastUpdate(new Date());
+      }, 30000);
+
+      return () => {
+        clearInterval(interval);
+      };
+    }
+  }, [activeTab, formId]);
 
   useEffect(() => {
     let filtered = [...contacts];
@@ -116,7 +165,7 @@ function App() {
     total: contacts.length,
   };
 
-  if (!formId) {
+  if (!formId && activeTab === 'typeform') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl shadow-xl p-8 max-w-md w-full">
@@ -139,6 +188,12 @@ function App() {
 VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
               </pre>
             </div>
+            <button
+              onClick={() => setActiveTab('airtable')}
+              className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
+            >
+              Voir les données Airtable
+            </button>
           </div>
         </div>
       </div>
@@ -160,7 +215,7 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {newContactsCount > 0 && (
+              {activeTab === 'typeform' && newContactsCount > 0 && (
                 <div className="flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-lg border border-green-300">
                   <Bell className="w-5 h-5" />
                   <span className="font-medium">{newContactsCount} nouvelle{newContactsCount > 1 ? 's' : ''} demande{newContactsCount > 1 ? 's' : ''}</span>
@@ -173,7 +228,7 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
                 </div>
               )}
               <button
-                onClick={syncTypeform}
+                onClick={activeTab === 'typeform' ? syncTypeform : syncAirtable}
                 disabled={syncing}
                 className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 font-medium"
               >
@@ -183,6 +238,8 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
             </div>
           </div>
 
+          <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+
           <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-green-700">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -191,136 +248,208 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
             <span className="text-xs text-green-600">Dernière màj: {lastUpdate.toLocaleTimeString('fr-FR')}</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <StatsCard title="Nouveaux" value={stats.new} icon={Inbox} color="green" />
-            <StatsCard title="En cours" value={stats.in_progress} icon={Clock} color="blue" />
-            <StatsCard title="Terminés" value={stats.completed} icon={CheckCircle} color="gray" />
-            <StatsCard title="Total" value={stats.total} icon={Archive} color="yellow" />
-          </div>
+          {activeTab === 'typeform' && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <StatsCard title="Nouveaux" value={stats.new} icon={Inbox} color="green" />
+                <StatsCard title="En cours" value={stats.in_progress} icon={Clock} color="blue" />
+                <StatsCard title="Terminés" value={stats.completed} icon={CheckCircle} color="gray" />
+                <StatsCard title="Total" value={stats.total} icon={Archive} color="yellow" />
+              </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Filter className="w-5 h-5 text-gray-600" />
-              <h3 className="font-medium text-gray-900">Filtres</h3>
+              <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Filter className="w-5 h-5 text-gray-600" />
+                  <h3 className="font-medium text-gray-900">Filtres</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Statut
+                    </label>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    >
+                      <option value="all">Tous les statuts</option>
+                      <option value="new">Nouveau</option>
+                      <option value="in_progress">En cours</option>
+                      <option value="contacted">Contacté</option>
+                      <option value="completed">Terminé</option>
+                      <option value="archived">Archivé</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Priorité
+                    </label>
+                    <select
+                      value={priorityFilter}
+                      onChange={(e) => setPriorityFilter(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    >
+                      <option value="all">Toutes les priorités</option>
+                      <option value="high">Haute</option>
+                      <option value="medium">Moyenne</option>
+                      <option value="low">Basse</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Type de demandeur
+                    </label>
+                    <select
+                      value={typeFilter}
+                      onChange={(e) => setTypeFilter(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    >
+                      <option value="all">Tous les types</option>
+                      <option value="Un particulier">Un particulier</option>
+                      <option value="Un installateur">Un installateur</option>
+                      <option value="Une entreprise">Une entreprise</option>
+                      <option value="Une collectivité">Une collectivité</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'airtable' && (
+            <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+              <div className="flex items-center gap-2">
+                <Archive className="w-5 h-5 text-gray-600" />
+                <h3 className="font-medium text-gray-900">Leads Solaires</h3>
+                <span className="ml-auto text-sm text-gray-600">{airtableRecords.length} enregistrements</span>
+              </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Statut
-                </label>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                >
-                  <option value="all">Tous les statuts</option>
-                  <option value="new">Nouveau</option>
-                  <option value="in_progress">En cours</option>
-                  <option value="contacted">Contacté</option>
-                  <option value="completed">Terminé</option>
-                  <option value="archived">Archivé</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Priorité
-                </label>
-                <select
-                  value={priorityFilter}
-                  onChange={(e) => setPriorityFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                >
-                  <option value="all">Toutes les priorités</option>
-                  <option value="high">Haute</option>
-                  <option value="medium">Moyenne</option>
-                  <option value="low">Basse</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Type de demandeur
-                </label>
-                <select
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                >
-                  <option value="all">Tous les types</option>
-                  <option value="Un particulier">Un particulier</option>
-                  <option value="Un installateur">Un installateur</option>
-                  <option value="Une entreprise">Une entreprise</option>
-                  <option value="Une collectivité">Une collectivité</option>
-                </select>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0">
-                <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
+        {activeTab === 'typeform' && (
+          <>
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0">
+                    <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-medium text-red-800">Erreur de synchronisation</h3>
+                    <p className="text-sm text-red-700 mt-1">{error}</p>
+                    <button
+                      onClick={() => setShowConfig(true)}
+                      className="text-sm text-red-800 underline mt-2 hover:text-red-900"
+                    >
+                      Modifier l'ID du formulaire
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-medium text-red-800">Erreur de synchronisation</h3>
-                <p className="text-sm text-red-700 mt-1">{error}</p>
-                <button
-                  onClick={() => setShowConfig(true)}
-                  className="text-sm text-red-800 underline mt-2 hover:text-red-900"
-                >
-                  Modifier l'ID du formulaire
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {loading ? (
-          <div className="text-center py-12">
-            <RefreshCw className="w-12 h-12 text-green-600 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">Chargement des demandes...</p>
-          </div>
-        ) : filteredContacts.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-            <Inbox className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Aucune demande trouvée
-            </h3>
-            <p className="text-gray-600 mb-4">
-              {contacts.length === 0
-                ? 'Aucune réponse trouvée dans votre formulaire Typeform'
-                : 'Aucune demande ne correspond aux filtres sélectionnés'}
-            </p>
-            {contacts.length === 0 && (
-              <button
-                onClick={() => setShowConfig(true)}
-                className="text-sm text-green-600 underline hover:text-green-700"
-              >
-                Modifier l'ID du formulaire
-              </button>
             )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredContacts.map((contact) => (
-              <ContactCard
-                key={contact.id}
-                contact={contact}
-                onClick={() => setSelectedContact(contact)}
+
+            {loading ? (
+              <div className="text-center py-12">
+                <RefreshCw className="w-12 h-12 text-green-600 animate-spin mx-auto mb-4" />
+                <p className="text-gray-600">Chargement des demandes...</p>
+              </div>
+            ) : filteredContacts.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+                <Inbox className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Aucune demande trouvée
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  {contacts.length === 0
+                    ? 'Aucune réponse trouvée dans votre formulaire Typeform'
+                    : 'Aucune demande ne correspond aux filtres sélectionnés'}
+                </p>
+                {contacts.length === 0 && (
+                  <button
+                    onClick={() => setShowConfig(true)}
+                    className="text-sm text-green-600 underline hover:text-green-700"
+                  >
+                    Modifier l'ID du formulaire
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredContacts.map((contact) => (
+                  <ContactCard
+                    key={contact.id}
+                    contact={contact}
+                    onClick={() => setSelectedContact(contact)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {selectedContact && (
+              <ContactModal
+                contact={selectedContact}
+                onClose={() => setSelectedContact(null)}
+                onUpdate={fetchContacts}
               />
-            ))}
-          </div>
+            )}
+          </>
         )}
 
-        {selectedContact && (
-          <ContactModal
-            contact={selectedContact}
-            onClose={() => setSelectedContact(null)}
-            onUpdate={fetchContacts}
-          />
+        {activeTab === 'airtable' && (
+          <>
+            {airtableError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0">
+                    <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-medium text-red-800">Erreur de synchronisation Airtable</h3>
+                    <p className="text-sm text-red-700 mt-1">{airtableError}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {airtableLoading ? (
+              <div className="text-center py-12">
+                <RefreshCw className="w-12 h-12 text-green-600 animate-spin mx-auto mb-4" />
+                <p className="text-gray-600">Chargement des leads Airtable...</p>
+              </div>
+            ) : airtableRecords.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+                <Inbox className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Aucun enregistrement trouvé
+                </h3>
+                <p className="text-gray-600">
+                  Aucune donnée trouvée dans votre table Airtable
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {airtableRecords.map((record) => (
+                  <AirtableCard
+                    key={record.id}
+                    record={record}
+                    onClick={() => setSelectedAirtableRecord(record)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {selectedAirtableRecord && (
+              <AirtableModal
+                record={selectedAirtableRecord}
+                onClose={() => setSelectedAirtableRecord(null)}
+              />
+            )}
+          </>
         )}
 
         {showConfig && (
