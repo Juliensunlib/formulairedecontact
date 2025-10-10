@@ -11,7 +11,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     archived: { label: 'Archivé', className: 'bg-gray-50 text-gray-600 border-gray-200' },
   };
 
-  const config = statusConfig[status];
+  const config = statusConfig[status] || statusConfig.new;
 
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.className}`}>

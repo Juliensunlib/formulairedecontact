@@ -9,7 +9,7 @@ export function PriorityBadge({ priority }: PriorityBadgeProps) {
     high: { label: 'Haute', className: 'bg-red-100 text-red-700' },
   };
 
-  const config = priorityConfig[priority];
+  const config = priorityConfig[priority] || priorityConfig.medium;
 
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${config.className}`}>
