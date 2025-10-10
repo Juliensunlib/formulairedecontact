@@ -1,6 +1,6 @@
 import { X, Calendar, FileText, User, Trash2, CheckCircle2, Database } from 'lucide-react';
 import { useState } from 'react';
-import { AirtableRecord, updateAirtableRecord } from '../lib/airtable';
+import { AirtableRecord, updateAirtableRecord, mapStatusFromAirtable, mapPriorityFromAirtable, mapStatusToAirtable, mapPriorityToAirtable } from '../lib/airtable';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
 
@@ -12,10 +12,10 @@ interface AirtableModalProps {
 
 export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps) {
   const [status, setStatus] = useState<'new' | 'in_progress' | 'contacted' | 'completed' | 'archived'>(
-    (record.fields['Statut'] as string) || 'new'
+    mapStatusFromAirtable(record.fields['Statut'] as string)
   );
   const [priority, setPriority] = useState<'low' | 'medium' | 'high'>(
-    (record.fields['Priorité'] as string) || 'medium'
+    mapPriorityFromAirtable(record.fields['Priorité'] as string)
   );
   const [notes, setNotes] = useState((record.fields['Notes internes'] as string) || '');
   const [assignedTo, setAssignedTo] = useState((record.fields['Assigné à'] as string) || '');
@@ -44,8 +44,8 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
     setSaving(true);
     try {
       await updateAirtableRecord(record.id, {
-        'Statut': status,
-        'Priorité': priority,
+        'Statut': mapStatusToAirtable(status),
+        'Priorité': mapPriorityToAirtable(priority),
         'Notes internes': notes || '',
         'Assigné à': assignedTo || '',
       });
@@ -66,7 +66,7 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
     setDeleting(true);
     try {
       await updateAirtableRecord(record.id, {
-        'Statut': 'archived',
+        'Statut': mapStatusToAirtable('archived'),
       });
 
       if (onUpdate) onUpdate();
@@ -82,7 +82,7 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
   const handleQuickAction = async (newStatus: string) => {
     try {
       await updateAirtableRecord(record.id, {
-        'Statut': newStatus,
+        'Statut': mapStatusToAirtable(newStatus),
       });
 
       setStatus(newStatus as any);

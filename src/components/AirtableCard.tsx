@@ -1,4 +1,4 @@
-import { AirtableRecord } from '../lib/airtable';
+import { AirtableRecord, mapStatusFromAirtable, mapPriorityFromAirtable } from '../lib/airtable';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
 
@@ -8,8 +8,8 @@ interface AirtableCardProps {
 }
 
 export function AirtableCard({ record, onClick }: AirtableCardProps) {
-  const status = (record.fields['Statut'] as string) || 'new';
-  const priority = (record.fields['Priorité'] as string) || 'medium';
+  const status = mapStatusFromAirtable(record.fields['Statut'] as string);
+  const priority = mapPriorityFromAirtable(record.fields['Priorité'] as string);
   const formatValue = (value: any): string => {
     if (value === null || value === undefined) return '-';
     if (Array.isArray(value)) return value.join(', ');

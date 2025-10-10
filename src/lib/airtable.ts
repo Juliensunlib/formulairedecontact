@@ -9,6 +9,50 @@ export interface AirtableResponse {
   offset?: string;
 }
 
+const statusMapping: Record<string, string> = {
+  'new': 'Nouveau',
+  'in_progress': 'En cours',
+  'contacted': 'Contacté',
+  'completed': 'Terminé',
+  'archived': 'Archivé',
+};
+
+const priorityMapping: Record<string, string> = {
+  'low': 'Basse',
+  'medium': 'Moyenne',
+  'high': 'Haute',
+};
+
+const reverseStatusMapping: Record<string, string> = {
+  'Nouveau': 'new',
+  'En cours': 'in_progress',
+  'Contacté': 'contacted',
+  'Terminé': 'completed',
+  'Archivé': 'archived',
+};
+
+const reversePriorityMapping: Record<string, string> = {
+  'Basse': 'low',
+  'Moyenne': 'medium',
+  'Haute': 'high',
+};
+
+export function mapStatusToAirtable(status: string): string {
+  return statusMapping[status] || status;
+}
+
+export function mapPriorityToAirtable(priority: string): string {
+  return priorityMapping[priority] || priority;
+}
+
+export function mapStatusFromAirtable(status: string): string {
+  return reverseStatusMapping[status] || 'new';
+}
+
+export function mapPriorityFromAirtable(priority: string): string {
+  return reversePriorityMapping[priority] || 'medium';
+}
+
 export async function fetchAirtableRecords(): Promise<AirtableRecord[]> {
   const token = import.meta.env.VITE_AIRTABLE_TOKEN;
   const baseId = import.meta.env.VITE_AIRTABLE_BASE_ID;
