@@ -17,9 +17,11 @@ function App() {
   const [selectedContact, setSelectedContact] = useState<ContactRequest | null>(null);
 
   const [airtableRecords, setAirtableRecords] = useState<AirtableRecord[]>([]);
+  const [filteredAirtableRecords, setFilteredAirtableRecords] = useState<AirtableRecord[]>([]);
   const [selectedAirtableRecord, setSelectedAirtableRecord] = useState<AirtableRecord | null>(null);
   const [airtableLoading, setAirtableLoading] = useState(false);
   const [airtableError, setAirtableError] = useState<string>('');
+  const [airtableStatusFilter, setAirtableStatusFilter] = useState<string>('all');
   const [airtableStats, setAirtableStats] = useState({
     new: 0,
     in_progress: 0,
@@ -190,6 +192,16 @@ function App() {
     setFilteredContacts(filtered);
   }, [contacts, statusFilter, priorityFilter, typeFilter]);
 
+  useEffect(() => {
+    let filtered = [...airtableRecords];
+
+    if (airtableStatusFilter !== 'all') {
+      filtered = filtered.filter(r => (r.fields['Statut'] as string) === airtableStatusFilter);
+    }
+
+    setFilteredAirtableRecords(filtered);
+  }, [airtableRecords, airtableStatusFilter]);
+
   const stats = {
     new: contacts.filter(c => c.status === 'new').length,
     in_progress: contacts.filter(c => c.status === 'in_progress').length,
@@ -350,10 +362,25 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
 
           {activeTab === 'airtable' && (
             <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-              <div className="flex items-center gap-2">
-                <Archive className="w-5 h-5 text-gray-600" />
-                <h3 className="font-medium text-gray-900">Leads Solaires</h3>
-                <span className="ml-auto text-sm text-gray-600">{airtableRecords.length} enregistrements</span>
+              <div className="flex items-center gap-2 mb-4">
+                <Filter className="w-5 h-5 text-gray-600" />
+                <h3 className="font-medium text-gray-900">Filtres - Leads Solaires</h3>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Statut
+                </label>
+                <select
+                  value={airtableStatusFilter}
+                  onChange={(e) => setAirtableStatusFilter(e.target.value)}
+                  className="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                >
+                  <option value="all">Tous les statuts</option>
+                  <option value="new">Nouveau</option>
+                  <option value="in_progress">En cours</option>
+                  <option value="contacted">Contacté</option>
+                  <option value="completed">Terminé</option>
+                </select>
               </div>
             </div>
           )}
@@ -460,19 +487,21 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
                 <RefreshCw className="w-12 h-12 text-green-600 animate-spin mx-auto mb-4" />
                 <p className="text-gray-600">Chargement des leads Airtable...</p>
               </div>
-            ) : airtableRecords.length === 0 ? (
+            ) : filteredAirtableRecords.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
                 <Inbox className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
                   Aucun enregistrement trouvé
                 </h3>
                 <p className="text-gray-600">
-                  Aucune donnée trouvée dans votre table Airtable
+                  {airtableRecords.length === 0
+                    ? 'Aucune donnée trouvée dans votre table Airtable'
+                    : 'Aucun lead ne correspond au filtre sélectionné'}
                 </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {airtableRecords.map((record) => (
+                {filteredAirtableRecords.map((record) => (
                   <AirtableCard
                     key={record.id}
                     record={record}
