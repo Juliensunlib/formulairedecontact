@@ -109,11 +109,11 @@ function App() {
       };
 
       records.forEach(record => {
-        const status = (record.fields['Statut'] as string) || 'new';
-        if (status === 'new') stats.new++;
-        else if (status === 'in_progress') stats.in_progress++;
-        else if (status === 'contacted') stats.contacted++;
-        else if (status === 'completed') stats.completed++;
+        const status = (record.fields['Statut'] as string) || 'Nouveau';
+        if (status === 'Nouveau') stats.new++;
+        else if (status === 'En cours') stats.in_progress++;
+        else if (status === 'Contacté') stats.contacted++;
+        else if (status === 'Terminé') stats.completed++;
       });
 
       setAirtableStats(stats);
@@ -376,10 +376,11 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
                   className="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 >
                   <option value="all">Tous les statuts</option>
-                  <option value="new">Nouveau</option>
-                  <option value="in_progress">En cours</option>
-                  <option value="contacted">Contacté</option>
-                  <option value="completed">Terminé</option>
+                  <option value="Nouveau">Nouveau</option>
+                  <option value="En cours">En cours</option>
+                  <option value="Contacté">Contacté</option>
+                  <option value="Terminé">Terminé</option>
+                  <option value="Archivé">Archivé</option>
                 </select>
               </div>
             </div>
