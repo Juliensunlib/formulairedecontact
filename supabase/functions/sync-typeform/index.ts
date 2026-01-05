@@ -76,7 +76,17 @@ Deno.serve(async (req: Request) => {
     });
 
     if (!typeformResponse.ok) {
-      throw new Error(`Typeform API error: ${typeformResponse.statusText}`);
+      const errorText = await typeformResponse.text();
+      console.error('Typeform API error:', typeformResponse.status, errorText);
+      throw new Error(`Typeform API error (${typeformResponse.status}): ${typeformResponse.statusText}. Vérifiez que votre token et l'ID du formulaire sont corrects.`);
+    }
+
+    const contentType = typeformResponse.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const responseText = await typeformResponse.text();
+      console.error('Invalid response type:', contentType);
+      console.error('Response body:', responseText.substring(0, 500));
+      throw new Error(`L'API Typeform n'a pas retourné de JSON. Vérifiez que votre token a les permissions "Read responses" et que l'ID du formulaire (${formId}) est correct.`);
     }
 
     const data = await typeformResponse.json();
