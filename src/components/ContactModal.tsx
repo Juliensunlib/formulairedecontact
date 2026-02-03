@@ -1,4 +1,4 @@
-import { X, Mail, Phone, Building2, MessageSquare, Calendar, FileText, User, Trash2, CheckCircle2, MapPin, Users } from 'lucide-react';
+import { X, Mail, Phone, Building2, MessageSquare, Calendar, FileText, User, Trash2, CheckCircle2, MapPin, Users, Link2 } from 'lucide-react';
 import { useState } from 'react';
 import { ContactRequest, supabase } from '../lib/supabase';
 import { StatusBadge } from './StatusBadge';
@@ -243,6 +243,14 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
                 <Calendar className="w-4 h-4 mr-2" />
                 Soumis le {formatDate(contact.submitted_at)}
               </div>
+              {(contact as any).network_id && (
+                <div className="flex items-center text-blue-700 text-sm col-span-full bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
+                  <Link2 className="w-4 h-4 mr-2" />
+                  <span className="font-medium">Network ID:</span>
+                  <span className="ml-2">{(contact as any).network_id}</span>
+                  <span className="ml-2 text-xs text-blue-600">(Lié à Airtable)</span>
+                </div>
+              )}
             </div>
           </div>
 
