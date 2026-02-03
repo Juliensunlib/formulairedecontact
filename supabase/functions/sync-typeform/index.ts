@@ -143,6 +143,7 @@ Deno.serve(async (req: Request) => {
         postal_code: answersMap['4e2fbe67-b13a-4d97-8788-98fab85601bd'] || null,
         department: answersMap['9c154787-a439-4401-bdf4-a45db97b91a7'] || null,
         country: answersMap['e11fd014-2917-409c-8097-4918e4e69fa6'] || null,
+        network_id: answersMap['hidden_network_id'] || answersMap['network_id'] || null,
         status: meta.status,
         priority: meta.priority,
         notes: meta.notes,
