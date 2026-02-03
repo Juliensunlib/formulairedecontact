@@ -113,6 +113,61 @@ export interface RHCollaborator {
   name: string;
 }
 
+export async function findAirtableRecordByNetworkId(networkId: string): Promise<string | null> {
+  const token = import.meta.env.VITE_AIRTABLE_TOKEN;
+  const baseId = import.meta.env.VITE_AIRTABLE_BASE_ID;
+  const tableName = import.meta.env.VITE_AIRTABLE_TABLE_NAME;
+
+  if (!token || !baseId || !tableName) {
+    throw new Error('Configuration Airtable manquante');
+  }
+
+  const formula = `{Network ID} = '${networkId}'`;
+  const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}?filterByFormula=${encodeURIComponent(formula)}`;
+
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Erreur Airtable: ${response.status} - ${errorText}`);
+  }
+
+  const data: AirtableResponse = await response.json();
+
+  if (data.records.length > 0) {
+    return data.records[0].id;
+  }
+
+  return null;
+}
+
+export async function syncStatusAndPriorityToAirtable(
+  networkId: string,
+  status: string,
+  priority: string
+): Promise<void> {
+  try {
+    const recordId = await findAirtableRecordByNetworkId(networkId);
+
+    if (!recordId) {
+      console.warn(`Aucun enregistrement Airtable trouvé pour Network ID: ${networkId}`);
+      return;
+    }
+
+    await updateAirtableRecord(recordId, {
+      'Statut': mapStatusToAirtable(status),
+      'Priorité': mapPriorityToAirtable(priority),
+    });
+  } catch (error) {
+    console.error('Erreur lors de la synchronisation avec Airtable:', error);
+    throw error;
+  }
+}
+
 export async function fetchRHCollaborators(): Promise<RHCollaborator[]> {
   const token = import.meta.env.VITE_AIRTABLE_TOKEN;
   const baseId = import.meta.env.VITE_AIRTABLE_BASE_ID;

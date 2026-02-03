@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ContactRequest, supabase } from '../lib/supabase';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
+import { syncStatusAndPriorityToAirtable } from '../lib/airtable';
 
 interface ContactModalProps {
   contact: ContactRequest;
@@ -63,6 +64,14 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
         if (error) throw error;
       }
 
+      if ((contact as any).network_id) {
+        try {
+          await syncStatusAndPriorityToAirtable((contact as any).network_id, status, priority);
+        } catch (airtableError) {
+          console.error('Airtable sync failed:', airtableError);
+        }
+      }
+
       onUpdate();
       onClose();
     } catch (error) {
@@ -103,6 +112,14 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
         if (error) throw error;
       }
 
+      if ((contact as any).network_id) {
+        try {
+          await syncStatusAndPriorityToAirtable((contact as any).network_id, 'archived', priority);
+        } catch (airtableError) {
+          console.error('Airtable sync failed:', airtableError);
+        }
+      }
+
       onUpdate();
       onClose();
     } catch (error) {
@@ -138,6 +155,14 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
           });
 
         if (error) throw error;
+      }
+
+      if ((contact as any).network_id) {
+        try {
+          await syncStatusAndPriorityToAirtable((contact as any).network_id, newStatus, priority);
+        } catch (airtableError) {
+          console.error('Airtable sync failed:', airtableError);
+        }
       }
 
       setStatus(newStatus as any);
