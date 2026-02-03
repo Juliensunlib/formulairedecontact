@@ -364,6 +364,17 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
               </button>
             </div>
           </div>
+
+          {contact.raw_data && (
+            <details className="bg-gray-50 rounded-lg p-4">
+              <summary className="cursor-pointer font-medium text-gray-700 mb-2">
+                Données brutes (pour debug)
+              </summary>
+              <pre className="text-xs bg-gray-800 text-green-400 p-3 rounded overflow-x-auto max-h-96 overflow-y-auto">
+                {JSON.stringify(contact.raw_data, null, 2)}
+              </pre>
+            </details>
+          )}
         </div>
       </div>
     </div>
