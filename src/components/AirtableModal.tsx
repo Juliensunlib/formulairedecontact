@@ -1,6 +1,6 @@
 import { X, Calendar, FileText, User, Trash2, CheckCircle2, Database } from 'lucide-react';
-import { useState } from 'react';
-import { AirtableRecord, updateAirtableRecord, mapStatusFromAirtable, mapPriorityFromAirtable, mapStatusToAirtable, mapPriorityToAirtable } from '../lib/airtable';
+import { useState, useEffect } from 'react';
+import { AirtableRecord, updateAirtableRecord, mapStatusFromAirtable, mapPriorityFromAirtable, mapStatusToAirtable, mapPriorityToAirtable, fetchRHCollaborators, RHCollaborator } from '../lib/airtable';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
 
@@ -18,9 +18,31 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
     mapPriorityFromAirtable(record.fields['Priorité'] as string)
   );
   const [notes, setNotes] = useState((record.fields['Notes internes'] as string) || '');
-  const [assignedTo, setAssignedTo] = useState((record.fields['Assigné à'] as string) || '');
+  const [collaborators, setCollaborators] = useState<RHCollaborator[]>([]);
+  const [selectedCollaboratorId, setSelectedCollaboratorId] = useState<string>('');
+  const [loadingCollaborators, setLoadingCollaborators] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    const loadCollaborators = async () => {
+      try {
+        const collabs = await fetchRHCollaborators();
+        setCollaborators(collabs);
+
+        const rhField = record.fields['RH'];
+        if (rhField && Array.isArray(rhField) && rhField.length > 0) {
+          setSelectedCollaboratorId(rhField[0]);
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des collaborateurs:', error);
+      } finally {
+        setLoadingCollaborators(false);
+      }
+    };
+
+    loadCollaborators();
+  }, [record.fields]);
 
   const formatValue = (value: any): string => {
     if (value === null || value === undefined) return '-';
@@ -43,12 +65,17 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
   const handleSave = async () => {
     setSaving(true);
     try {
-      await updateAirtableRecord(record.id, {
+      const updateFields: Record<string, any> = {
         'Statut': mapStatusToAirtable(status),
         'Priorité': mapPriorityToAirtable(priority),
         'Notes internes': notes || '',
-        'Assigné à': assignedTo || '',
-      });
+      };
+
+      if (selectedCollaboratorId) {
+        updateFields['RH'] = [selectedCollaboratorId];
+      }
+
+      await updateAirtableRecord(record.id, updateFields);
 
       if (onUpdate) onUpdate();
       onClose();
@@ -94,10 +121,10 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
   };
 
   const mainFields = Object.entries(record.fields)
-    .filter(([key]) => !['Statut', 'Priorité', 'Notes internes', 'Assigné à'].includes(key))
+    .filter(([key]) => !['Statut', 'Priorité', 'Notes internes', 'Assigné à', 'RH'].includes(key))
     .slice(0, 8);
   const otherFields = Object.entries(record.fields)
-    .filter(([key]) => !['Statut', 'Priorité', 'Notes internes', 'Assigné à'].includes(key))
+    .filter(([key]) => !['Statut', 'Priorité', 'Notes internes', 'Assigné à', 'RH'].includes(key))
     .slice(8);
 
   return (
@@ -206,15 +233,26 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <User className="w-4 h-4 inline mr-1" />
-                Assigné à
+                Collaborateur assigné
               </label>
-              <input
-                type="text"
-                value={assignedTo}
-                onChange={(e) => setAssignedTo(e.target.value)}
-                placeholder="Nom de la personne"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-              />
+              {loadingCollaborators ? (
+                <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
+                  Chargement des collaborateurs...
+                </div>
+              ) : (
+                <select
+                  value={selectedCollaboratorId}
+                  onChange={(e) => setSelectedCollaboratorId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                >
+                  <option value="">-- Sélectionner un collaborateur --</option>
+                  {collaborators.map((collab) => (
+                    <option key={collab.id} value={collab.id}>
+                      {collab.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div>

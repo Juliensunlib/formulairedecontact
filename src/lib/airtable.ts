@@ -107,3 +107,38 @@ export async function updateAirtableRecord(
     throw new Error(`Erreur Airtable: ${response.status} - ${errorText}`);
   }
 }
+
+export interface RHCollaborator {
+  id: string;
+  name: string;
+}
+
+export async function fetchRHCollaborators(): Promise<RHCollaborator[]> {
+  const token = import.meta.env.VITE_AIRTABLE_TOKEN;
+  const baseId = import.meta.env.VITE_AIRTABLE_BASE_ID;
+  const rhTableName = 'RH';
+
+  if (!token || !baseId) {
+    throw new Error('Configuration Airtable manquante');
+  }
+
+  const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(rhTableName)}`;
+
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Erreur Airtable: ${response.status} - ${errorText}`);
+  }
+
+  const data: AirtableResponse = await response.json();
+
+  return data.records.map(record => ({
+    id: record.id,
+    name: record.fields['Nom'] as string || record.fields['Name'] as string || 'Sans nom',
+  }));
+}
