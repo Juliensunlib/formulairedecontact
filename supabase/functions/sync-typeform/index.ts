@@ -28,6 +28,93 @@ interface TypeformResponse {
   answers: TypeformAnswer[];
 }
 
+async function syncToAirtable(
+  typeformData: any,
+  airtableToken: string,
+  airtableBaseId: string,
+  airtableTableName: string
+): Promise<void> {
+  try {
+    const formula = `{Network ID} = '${typeformData.networkId}'`;
+    const searchUrl = `https://api.airtable.com/v0/${airtableBaseId}/${encodeURIComponent(airtableTableName)}?filterByFormula=${encodeURIComponent(formula)}`;
+
+    const searchResponse = await fetch(searchUrl, {
+      headers: {
+        'Authorization': `Bearer ${airtableToken}`,
+      },
+    });
+
+    let existingRecordId = null;
+    if (searchResponse.ok) {
+      const searchData = await searchResponse.json();
+      if (searchData.records && searchData.records.length > 0) {
+        existingRecordId = searchData.records[0].id;
+      }
+    }
+
+    const statusMapping: Record<string, string> = {
+      'new': 'Nouveau',
+      'in_progress': 'En cours',
+      'contacted': 'Contacté',
+      'completed': 'Terminé',
+      'archived': 'Archivé',
+    };
+
+    const priorityMapping: Record<string, string> = {
+      'low': 'Basse',
+      'medium': 'Moyenne',
+      'high': 'Haute',
+    };
+
+    const fields: Record<string, any> = {
+      '#': typeformData.responseId,
+      'Vous êtes': typeformData.requesterType || '',
+      'Séléctionnez un motif': typeformData.motif || '',
+      'Address': typeformData.address || '',
+      'Address line 2': typeformData.addressLine2 || '',
+      'City/Town': typeformData.city || '',
+      'State/Region/Province': typeformData.stateRegion || '',
+      'Zip/Post Code': typeformData.postalCode || '',
+      'Country': typeformData.country || '',
+      'First name': typeformData.firstName || '',
+      'Last name': typeformData.lastName || '',
+      'Phone number': typeformData.phone || '',
+      'Email': typeformData.email || '',
+      'Company': typeformData.company || '',
+      'Submit Date (UTC)': typeformData.submittedAt,
+      'Network ID': typeformData.networkId || '',
+      'Date de création': new Date().toISOString(),
+      'Statut': statusMapping[typeformData.status] || 'Nouveau',
+      'Priorité': priorityMapping[typeformData.priority] || 'Moyenne',
+      'Assigné à': typeformData.assignedTo || '',
+    };
+
+    if (existingRecordId) {
+      const updateUrl = `https://api.airtable.com/v0/${airtableBaseId}/${encodeURIComponent(airtableTableName)}/${existingRecordId}`;
+      await fetch(updateUrl, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${airtableToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ fields }),
+      });
+    } else {
+      const createUrl = `https://api.airtable.com/v0/${airtableBaseId}/${encodeURIComponent(airtableTableName)}`;
+      await fetch(createUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${airtableToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ fields }),
+      });
+    }
+  } catch (error) {
+    console.error('Erreur synchronisation Airtable:', error);
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -45,6 +132,9 @@ Deno.serve(async (req: Request) => {
     const url = new URL(req.url);
     const formId = url.searchParams.get('form_id');
     const typeformToken = req.headers.get('X-Typeform-Token');
+    const airtableToken = req.headers.get('X-Airtable-Token');
+    const airtableBaseId = req.headers.get('X-Airtable-Base-Id');
+    const airtableTableName = req.headers.get('X-Airtable-Table-Name');
 
     if (!formId) {
       return new Response(
@@ -112,7 +202,6 @@ Deno.serve(async (req: Request) => {
         }
       });
 
-      // LOG pour debug - afficher tous les IDs et leurs valeurs
       console.log('=== REPONSE ===');
       console.log('answersMap:', JSON.stringify(answersMap, null, 2));
 
@@ -138,9 +227,12 @@ Deno.serve(async (req: Request) => {
         company: answersMap['706b2940-2868-49e5-8e46-8de8d2885c0a'] || null,
         message: answersMap['8e330c5e-7d38-42c5-bb81-d49a676f1a10'] || null,
         requester_type: answersMap['444b183b-c91d-4fbd-b31d-b00c3839392a'] || null,
+        motif: answersMap['c63c2c72-7f04-41b6-b0e6-cfe5c5db1e5c'] || null,
         address: answersMap['40cb8991-6622-4755-a410-10df28f27570'] || null,
+        address_line2: answersMap['address_line_2'] || null,
         city: answersMap['9949e625-2a58-4db9-9b63-53af19fdbde6'] || null,
         postal_code: answersMap['4e2fbe67-b13a-4d97-8788-98fab85601bd'] || null,
+        state_region: answersMap['9c154787-a439-4401-bdf4-a45db97b91a7'] || null,
         department: answersMap['9c154787-a439-4401-bdf4-a45db97b91a7'] || null,
         country: answersMap['e11fd014-2917-409c-8097-4918e4e69fa6'] || null,
         network_id: answersMap['hidden_network_id'] || answersMap['network_id'] || null,
@@ -151,6 +243,37 @@ Deno.serve(async (req: Request) => {
         raw_data: response,
       };
     });
+
+    if (airtableToken && airtableBaseId && airtableTableName) {
+      for (const enrichedResponse of enrichedResponses) {
+        await syncToAirtable(
+          {
+            responseId: enrichedResponse.typeform_response_id,
+            submittedAt: enrichedResponse.submitted_at,
+            requesterType: enrichedResponse.requester_type,
+            motif: enrichedResponse.motif,
+            address: enrichedResponse.address,
+            addressLine2: enrichedResponse.address_line2,
+            city: enrichedResponse.city,
+            stateRegion: enrichedResponse.state_region,
+            postalCode: enrichedResponse.postal_code,
+            country: enrichedResponse.country,
+            firstName: enrichedResponse.name.split(' ')[0],
+            lastName: enrichedResponse.name.split(' ').slice(1).join(' '),
+            phone: enrichedResponse.phone,
+            email: enrichedResponse.email,
+            company: enrichedResponse.company,
+            networkId: enrichedResponse.network_id,
+            status: enrichedResponse.status,
+            priority: enrichedResponse.priority,
+            assignedTo: enrichedResponse.assigned_to,
+          },
+          airtableToken,
+          airtableBaseId,
+          airtableTableName
+        );
+      }
+    }
 
     return new Response(
       JSON.stringify({

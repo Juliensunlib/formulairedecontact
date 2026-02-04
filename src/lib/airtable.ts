@@ -148,7 +148,8 @@ export async function findAirtableRecordByNetworkId(networkId: string): Promise<
 export async function syncStatusAndPriorityToAirtable(
   networkId: string,
   status: string,
-  priority: string
+  priority: string,
+  assignedTo?: string | null
 ): Promise<void> {
   try {
     const recordId = await findAirtableRecordByNetworkId(networkId);
@@ -158,13 +159,102 @@ export async function syncStatusAndPriorityToAirtable(
       return;
     }
 
-    await updateAirtableRecord(recordId, {
+    const fields: Record<string, any> = {
       'Statut': mapStatusToAirtable(status),
       'Priorité': mapPriorityToAirtable(priority),
-    });
+    };
+
+    if (assignedTo !== undefined) {
+      fields['Assigné à'] = assignedTo || '';
+    }
+
+    await updateAirtableRecord(recordId, fields);
   } catch (error) {
     console.error('Erreur lors de la synchronisation avec Airtable:', error);
     throw error;
+  }
+}
+
+export async function createOrUpdateAirtableRecord(
+  typeformData: {
+    responseId: string;
+    submittedAt: string;
+    requesterType?: string;
+    motif?: string;
+    address?: string;
+    addressLine2?: string;
+    city?: string;
+    stateRegion?: string;
+    postalCode?: string;
+    country?: string;
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    email?: string;
+    company?: string;
+    networkId?: string;
+    status?: string;
+    priority?: string;
+    assignedTo?: string;
+  }
+): Promise<string> {
+  const token = import.meta.env.VITE_AIRTABLE_TOKEN;
+  const baseId = import.meta.env.VITE_AIRTABLE_BASE_ID;
+  const tableName = import.meta.env.VITE_AIRTABLE_TABLE_NAME;
+
+  if (!token || !baseId || !tableName) {
+    throw new Error('Configuration Airtable manquante');
+  }
+
+  const existingRecordId = typeformData.networkId
+    ? await findAirtableRecordByNetworkId(typeformData.networkId)
+    : null;
+
+  const fields: Record<string, any> = {
+    '#': typeformData.responseId,
+    'Vous êtes': typeformData.requesterType || '',
+    'Séléctionnez un motif': typeformData.motif || '',
+    'Address': typeformData.address || '',
+    'Address line 2': typeformData.addressLine2 || '',
+    'City/Town': typeformData.city || '',
+    'State/Region/Province': typeformData.stateRegion || '',
+    'Zip/Post Code': typeformData.postalCode || '',
+    'Country': typeformData.country || '',
+    'First name': typeformData.firstName || '',
+    'Last name': typeformData.lastName || '',
+    'Phone number': typeformData.phone || '',
+    'Email': typeformData.email || '',
+    'Company': typeformData.company || '',
+    'Submit Date (UTC)': typeformData.submittedAt,
+    'Network ID': typeformData.networkId || '',
+    'Date de création': new Date().toISOString(),
+    'Statut': mapStatusToAirtable(typeformData.status || 'new'),
+    'Priorité': mapPriorityToAirtable(typeformData.priority || 'medium'),
+    'Assigné à': typeformData.assignedTo || '',
+  };
+
+  if (existingRecordId) {
+    await updateAirtableRecord(existingRecordId, fields);
+    return existingRecordId;
+  } else {
+    const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ fields }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Erreur Airtable: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data.id;
   }
 }
 

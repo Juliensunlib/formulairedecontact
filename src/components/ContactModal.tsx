@@ -1,9 +1,9 @@
 import { X, Mail, Phone, Building2, MessageSquare, Calendar, FileText, User, Trash2, CheckCircle2, MapPin, Users, Link2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ContactRequest, supabase } from '../lib/supabase';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
-import { syncStatusAndPriorityToAirtable } from '../lib/airtable';
+import { syncStatusAndPriorityToAirtable, fetchRHCollaborators, RHCollaborator } from '../lib/airtable';
 
 interface ContactModalProps {
   contact: ContactRequest;
@@ -18,6 +18,24 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
   const [assignedTo, setAssignedTo] = useState(contact.assigned_to || '');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [collaborators, setCollaborators] = useState<RHCollaborator[]>([]);
+  const [loadingCollaborators, setLoadingCollaborators] = useState(false);
+
+  useEffect(() => {
+    const loadCollaborators = async () => {
+      setLoadingCollaborators(true);
+      try {
+        const rhCollaborators = await fetchRHCollaborators();
+        setCollaborators(rhCollaborators);
+      } catch (error) {
+        console.error('Erreur chargement collaborateurs:', error);
+      } finally {
+        setLoadingCollaborators(false);
+      }
+    };
+
+    loadCollaborators();
+  }, []);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
@@ -66,7 +84,7 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
 
       if ((contact as any).network_id) {
         try {
-          await syncStatusAndPriorityToAirtable((contact as any).network_id, status, priority);
+          await syncStatusAndPriorityToAirtable((contact as any).network_id, status, priority, assignedTo);
         } catch (airtableError) {
           console.error('Airtable sync failed:', airtableError);
         }
@@ -114,7 +132,7 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
 
       if ((contact as any).network_id) {
         try {
-          await syncStatusAndPriorityToAirtable((contact as any).network_id, 'archived', priority);
+          await syncStatusAndPriorityToAirtable((contact as any).network_id, 'archived', priority, assignedTo);
         } catch (airtableError) {
           console.error('Airtable sync failed:', airtableError);
         }
@@ -159,7 +177,7 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
 
       if ((contact as any).network_id) {
         try {
-          await syncStatusAndPriorityToAirtable((contact as any).network_id, newStatus, priority);
+          await syncStatusAndPriorityToAirtable((contact as any).network_id, newStatus, priority, assignedTo);
         } catch (airtableError) {
           console.error('Airtable sync failed:', airtableError);
         }
@@ -305,13 +323,24 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
               <User className="w-4 h-4 inline mr-1" />
               Assigné à
             </label>
-            <input
-              type="text"
-              value={assignedTo}
-              onChange={(e) => setAssignedTo(e.target.value)}
-              placeholder="Nom de la personne"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-            />
+            {loadingCollaborators ? (
+              <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
+                Chargement...
+              </div>
+            ) : (
+              <select
+                value={assignedTo}
+                onChange={(e) => setAssignedTo(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              >
+                <option value="">Non assigné</option>
+                {collaborators.map((collab) => (
+                  <option key={collab.id} value={collab.name}>
+                    {collab.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div>

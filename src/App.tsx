@@ -58,6 +58,9 @@ function App() {
         headers: {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           'X-Typeform-Token': typeformToken,
+          'X-Airtable-Token': import.meta.env.VITE_AIRTABLE_TOKEN || '',
+          'X-Airtable-Base-Id': import.meta.env.VITE_AIRTABLE_BASE_ID || '',
+          'X-Airtable-Table-Name': import.meta.env.VITE_AIRTABLE_TABLE_NAME || '',
         },
       });
 
