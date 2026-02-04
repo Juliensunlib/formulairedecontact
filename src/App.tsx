@@ -66,7 +66,7 @@ function App() {
           'X-Typeform-Token': typeformToken,
           'X-Airtable-Token': import.meta.env.VITE_AIRTABLE_TOKEN || '',
           'X-Airtable-Base-Id': import.meta.env.VITE_AIRTABLE_BASE_ID || '',
-          'X-Airtable-Table-Name': import.meta.env.VITE_AIRTABLE_TABLE_NAME || '',
+          'X-Airtable-Table-Name': import.meta.env.VITE_AIRTABLE_TYPEFORM_TABLE_NAME || '',
         },
       });
 
@@ -142,11 +142,11 @@ function App() {
     const hasAirtableConfig = !!(
       import.meta.env.VITE_AIRTABLE_TOKEN &&
       import.meta.env.VITE_AIRTABLE_BASE_ID &&
-      import.meta.env.VITE_AIRTABLE_TABLE_NAME
+      import.meta.env.VITE_AIRTABLE_TYPEFORM_TABLE_NAME
     );
 
     if (!hasAirtableConfig) {
-      alert('❌ Configuration Airtable manquante !\n\nPour synchroniser vers Airtable, ajoutez ces variables dans votre fichier .env :\n\n• VITE_AIRTABLE_TOKEN\n• VITE_AIRTABLE_BASE_ID\n• VITE_AIRTABLE_TABLE_NAME\n\nCopiez les valeurs depuis Vercel → Settings → Environment Variables');
+      alert('❌ Configuration Airtable manquante !\n\nPour synchroniser vers Airtable, ajoutez ces variables dans votre fichier .env :\n\n• VITE_AIRTABLE_TOKEN\n• VITE_AIRTABLE_BASE_ID\n• VITE_AIRTABLE_TYPEFORM_TABLE_NAME\n\nCopiez les valeurs depuis Vercel → Settings → Environment Variables');
       return;
     }
 
@@ -161,7 +161,7 @@ function App() {
           'X-Typeform-Token': typeformToken,
           'X-Airtable-Token': import.meta.env.VITE_AIRTABLE_TOKEN || '',
           'X-Airtable-Base-Id': import.meta.env.VITE_AIRTABLE_BASE_ID || '',
-          'X-Airtable-Table-Name': import.meta.env.VITE_AIRTABLE_TABLE_NAME || '',
+          'X-Airtable-Table-Name': import.meta.env.VITE_AIRTABLE_TYPEFORM_TABLE_NAME || '',
         },
       });
 
