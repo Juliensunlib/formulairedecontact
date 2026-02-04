@@ -184,7 +184,7 @@ function App() {
 
       const existingMap = new Map();
       existingRecords.forEach((record: any) => {
-        const responseId = record.fields['Response ID'];
+        const responseId = record.fields['#'];
         if (responseId) {
           existingMap.set(responseId, record);
         }
@@ -202,20 +202,28 @@ function App() {
 
           console.log('📝 Traitement:', contact.name, contact.typeform_response_id);
 
+          const nameParts = contact.name?.split(' ') || [];
+          const firstName = nameParts.slice(0, -1).join(' ') || nameParts[0] || '';
+          const lastName = nameParts[nameParts.length - 1] || '';
+
           const baseFields = {
-            'Response ID': contact.typeform_response_id,
-            'Nom': contact.name || '',
+            '#': contact.typeform_response_id,
+            'Vous êtes': contact.requester_type || '',
+            'Séléctionnez un motif': contact.motif || '',
+            'Address': contact.address || '',
+            'Address line 2': contact.address_line2 || '',
+            'City/Town': contact.city || '',
+            'State/Region/Province': contact.state_region || '',
+            'Zip/Post Code': contact.postal_code || '',
+            'Country': contact.country || '',
+            'First name': firstName,
+            'Last name': lastName,
+            'Phone number': contact.phone || '',
             'Email': contact.email || '',
-            'Téléphone': contact.phone || '',
-            'Entreprise': contact.company || '',
-            'Message': contact.message || '',
-            'Type de demandeur': contact.requester_type || '',
-            'Motif': contact.motif || '',
-            'Adresse': contact.address || '',
-            'Ville': contact.city || '',
-            'Code postal': contact.postal_code || '',
-            'Pays': contact.country || '',
-            'Date de soumission': contact.submitted_at || new Date().toISOString(),
+            'Company': contact.company || '',
+            'Submit Date (UTC)': contact.submitted_at || new Date().toISOString(),
+            'Network ID': '',
+            'Date de création': new Date().toISOString(),
           };
 
           if (existingRecord) {
