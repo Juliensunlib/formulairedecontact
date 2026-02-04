@@ -200,6 +200,8 @@ function App() {
         try {
           const existingRecord = existingMap.get(contact.typeform_response_id);
 
+          console.log('📝 Traitement:', contact.name, contact.typeform_response_id);
+
           const baseFields = {
             'Response ID': contact.typeform_response_id,
             'Nom': contact.name || '',
@@ -245,7 +247,9 @@ function App() {
               results.updated++;
             } else {
               results.errors++;
-              console.error('Erreur mise à jour:', contact.typeform_response_id);
+              const errorData = await updateResponse.json();
+              console.error('❌ Erreur mise à jour:', contact.typeform_response_id);
+              console.error('Détails:', errorData);
             }
           } else {
             const newFields = {
@@ -267,7 +271,10 @@ function App() {
               results.created++;
             } else {
               results.errors++;
-              console.error('Erreur création:', contact.typeform_response_id);
+              const errorData = await createResponse.json();
+              console.error('❌ Erreur création:', contact.typeform_response_id);
+              console.error('Détails:', errorData);
+              console.error('Champs envoyés:', newFields);
             }
           }
 
