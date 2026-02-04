@@ -227,7 +227,6 @@ export async function createOrUpdateAirtableRecord(
     'Company': typeformData.company || '',
     'Submit Date (UTC)': typeformData.submittedAt,
     'Network ID': typeformData.networkId || '',
-    'Date de création': new Date().toISOString(),
     'Statut': mapStatusToAirtable(typeformData.status || 'new'),
     'Priorité': mapPriorityToAirtable(typeformData.priority || 'medium'),
     'Assigné à': typeformData.assignedTo || '',
