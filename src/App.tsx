@@ -155,6 +155,9 @@ function App() {
       const typeformToken = import.meta.env.VITE_TYPEFORM_TOKEN;
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-typeform?form_id=${formId}`;
 
+      console.log('🔵 Synchronisation vers Airtable...');
+      console.log('Table destination:', import.meta.env.VITE_AIRTABLE_TYPEFORM_TABLE_NAME);
+
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
@@ -166,7 +169,9 @@ function App() {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        const errorText = await response.text();
+        console.error('❌ Erreur HTTP:', response.status, errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
       const result = await response.json();
@@ -175,17 +180,18 @@ function App() {
 
       if (result.airtableSync && result.airtableSync.enabled) {
         const sync = result.airtableSync;
+        console.log('✅ Airtable sync:', sync);
         if (sync.errors > 0) {
           alert(`⚠️ Synchronisation vers Airtable terminée avec des erreurs :\n\n✓ ${sync.synced} enregistrements synchronisés\n❌ ${sync.errors} erreurs\n\nConsultez la console du navigateur pour plus de détails.`);
         } else {
-          alert(`✓ Synchronisation vers Airtable réussie !\n\n${sync.synced} enregistrements ont été synchronisés vers Airtable.`);
+          alert(`✓ Synchronisation vers Airtable réussie !\n\n${sync.synced} enregistrements ont été synchronisés vers la table "${import.meta.env.VITE_AIRTABLE_TYPEFORM_TABLE_NAME}".`);
         }
       } else {
         alert('✓ Données Typeform récupérées, mais aucune synchronisation Airtable effectuée.');
       }
-    } catch (error) {
-      console.error('Error syncing:', error);
-      alert('❌ Erreur lors de la synchronisation. Vérifiez la console pour plus de détails.');
+    } catch (error: any) {
+      console.error('❌ Error syncing:', error);
+      alert(`❌ Erreur lors de la synchronisation:\n\n${error.message || error}\n\nVérifiez la console pour plus de détails.`);
     } finally {
       setSyncing(false);
     }
@@ -341,7 +347,7 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
                     const hasAirtableConfig = !!(
                       import.meta.env.VITE_AIRTABLE_TOKEN &&
                       import.meta.env.VITE_AIRTABLE_BASE_ID &&
-                      import.meta.env.VITE_AIRTABLE_TABLE_NAME
+                      import.meta.env.VITE_AIRTABLE_TYPEFORM_TABLE_NAME
                     );
 
                     if (!hasAirtableConfig) {
@@ -645,7 +651,8 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
                         <li><code className="bg-blue-100 px-2 py-0.5 rounded">VITE_TYPEFORM_FORM_ID</code> (obligatoire)</li>
                         <li><code className="bg-blue-100 px-2 py-0.5 rounded">VITE_AIRTABLE_TOKEN</code> (pour sync Airtable)</li>
                         <li><code className="bg-blue-100 px-2 py-0.5 rounded">VITE_AIRTABLE_BASE_ID</code> (pour sync Airtable)</li>
-                        <li><code className="bg-blue-100 px-2 py-0.5 rounded">VITE_AIRTABLE_TABLE_NAME</code> (pour sync Airtable)</li>
+                        <li><code className="bg-blue-100 px-2 py-0.5 rounded">VITE_AIRTABLE_TABLE_NAME</code> (pour affichage Airtable)</li>
+                        <li><code className="bg-blue-100 px-2 py-0.5 rounded">VITE_AIRTABLE_TYPEFORM_TABLE_NAME</code> (pour sync Typeform vers Airtable)</li>
                       </ul>
                     </li>
                     <li>Sauvegardez le fichier .env</li>
@@ -678,6 +685,18 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
                       <strong>VITE_AIRTABLE_BASE_ID:</strong>{' '}
                       <code className="bg-yellow-100 px-2 py-0.5 rounded">
                         {import.meta.env.VITE_AIRTABLE_BASE_ID || '❌ Non configuré'}
+                      </code>
+                    </div>
+                    <div>
+                      <strong>VITE_AIRTABLE_TABLE_NAME:</strong>{' '}
+                      <code className="bg-yellow-100 px-2 py-0.5 rounded">
+                        {import.meta.env.VITE_AIRTABLE_TABLE_NAME || '❌ Non configuré'}
+                      </code>
+                    </div>
+                    <div>
+                      <strong>VITE_AIRTABLE_TYPEFORM_TABLE_NAME:</strong>{' '}
+                      <code className="bg-yellow-100 px-2 py-0.5 rounded">
+                        {import.meta.env.VITE_AIRTABLE_TYPEFORM_TABLE_NAME || '❌ Non configuré'}
                       </code>
                     </div>
                   </div>
