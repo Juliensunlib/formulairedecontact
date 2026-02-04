@@ -224,6 +224,9 @@ function App() {
             'Submit Date (UTC)': contact.submitted_at || new Date().toISOString(),
             'Network ID': '',
             'Date de création': new Date().toISOString(),
+            'Statut': contact.status || 'Nouveau',
+            'Priorité': contact.priority || 'Moyenne',
+            'Assigné à': contact.assigned_to || '',
           };
 
           if (existingRecord) {
