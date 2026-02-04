@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, Filter, Inbox, Clock, CheckCircle, Archive, Sun, Bell, Trash2, X } from 'lucide-react';
+import { RefreshCw, Filter, Inbox, Clock, CheckCircle, Archive, Sun, Bell, Trash2, X, Database } from 'lucide-react';
 import { ContactRequest } from './lib/supabase';
 import { AirtableRecord, fetchAirtableRecords } from './lib/airtable';
 import { ContactCard } from './components/ContactCard';
@@ -282,6 +282,20 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
                 <RefreshCw className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} />
                 {syncing ? 'Synchronisation...' : 'Synchroniser'}
               </button>
+              {activeTab === 'typeform' && (
+                <button
+                  onClick={() => {
+                    if (confirm('Forcer la synchronisation complète de toutes les réponses Typeform vers Airtable ?')) {
+                      syncTypeform();
+                    }
+                  }}
+                  disabled={syncing}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 font-medium"
+                >
+                  <Database className={`w-5 h-5`} />
+                  Pousser vers Airtable
+                </button>
+              )}
             </div>
           </div>
 

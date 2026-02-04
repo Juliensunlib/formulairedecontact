@@ -245,34 +245,53 @@ Deno.serve(async (req: Request) => {
     });
 
     if (airtableToken && airtableBaseId && airtableTableName) {
+      console.log(`=== SYNCHRONISATION AIRTABLE ===`);
+      console.log(`Nombre de réponses à synchroniser: ${enrichedResponses.length}`);
+
+      let synced = 0;
+      let errors = 0;
+
       for (const enrichedResponse of enrichedResponses) {
-        await syncToAirtable(
-          {
-            responseId: enrichedResponse.typeform_response_id,
-            submittedAt: enrichedResponse.submitted_at,
-            requesterType: enrichedResponse.requester_type,
-            motif: enrichedResponse.motif,
-            address: enrichedResponse.address,
-            addressLine2: enrichedResponse.address_line2,
-            city: enrichedResponse.city,
-            stateRegion: enrichedResponse.state_region,
-            postalCode: enrichedResponse.postal_code,
-            country: enrichedResponse.country,
-            firstName: enrichedResponse.name.split(' ')[0],
-            lastName: enrichedResponse.name.split(' ').slice(1).join(' '),
-            phone: enrichedResponse.phone,
-            email: enrichedResponse.email,
-            company: enrichedResponse.company,
-            networkId: enrichedResponse.network_id,
-            status: enrichedResponse.status,
-            priority: enrichedResponse.priority,
-            assignedTo: enrichedResponse.assigned_to,
-          },
-          airtableToken,
-          airtableBaseId,
-          airtableTableName
-        );
+        try {
+          await syncToAirtable(
+            {
+              responseId: enrichedResponse.typeform_response_id,
+              submittedAt: enrichedResponse.submitted_at,
+              requesterType: enrichedResponse.requester_type,
+              motif: enrichedResponse.motif,
+              address: enrichedResponse.address,
+              addressLine2: enrichedResponse.address_line2,
+              city: enrichedResponse.city,
+              stateRegion: enrichedResponse.state_region,
+              postalCode: enrichedResponse.postal_code,
+              country: enrichedResponse.country,
+              firstName: enrichedResponse.name.split(' ')[0],
+              lastName: enrichedResponse.name.split(' ').slice(1).join(' '),
+              phone: enrichedResponse.phone,
+              email: enrichedResponse.email,
+              company: enrichedResponse.company,
+              networkId: enrichedResponse.network_id,
+              status: enrichedResponse.status,
+              priority: enrichedResponse.priority,
+              assignedTo: enrichedResponse.assigned_to,
+            },
+            airtableToken,
+            airtableBaseId,
+            airtableTableName
+          );
+          synced++;
+          console.log(`✓ Synchronisé: ${enrichedResponse.email || enrichedResponse.name} (${synced}/${enrichedResponses.length})`);
+        } catch (error) {
+          errors++;
+          console.error(`✗ Erreur sync: ${enrichedResponse.email || enrichedResponse.name}`, error);
+        }
       }
+
+      console.log(`=== RÉSULTAT ===`);
+      console.log(`Synchronisés: ${synced}/${enrichedResponses.length}`);
+      console.log(`Erreurs: ${errors}`);
+    } else {
+      console.log('⚠️ Synchronisation Airtable désactivée (tokens manquants)');
     }
 
     return new Response(
