@@ -141,6 +141,70 @@ function App() {
     }
   };
 
+  const syncToAirtable = async () => {
+    const hasAirtableConfig = !!(
+      import.meta.env.VITE_AIRTABLE_TOKEN &&
+      import.meta.env.VITE_AIRTABLE_BASE_ID &&
+      import.meta.env.VITE_AIRTABLE_TYPEFORM_TABLE_NAME
+    );
+
+    if (!hasAirtableConfig) {
+      alert('❌ Configuration Airtable manquante !\n\nAjoutez ces variables dans .env ou sur Vercel:\n\n• VITE_AIRTABLE_TOKEN\n• VITE_AIRTABLE_BASE_ID\n• VITE_AIRTABLE_TYPEFORM_TABLE_NAME');
+      return;
+    }
+
+    if (contacts.length === 0) {
+      alert('Aucune donnée Typeform à synchroniser. Chargez d\'abord les données Typeform.');
+      return;
+    }
+
+    if (!confirm(`Synchroniser ${contacts.length} réponses Typeform vers Airtable?\n\nLes statuts et notes existants seront préservés.`)) {
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-to-airtable`;
+
+      console.log('🔵 Synchronisation vers Airtable...');
+      console.log('Table destination:', import.meta.env.VITE_AIRTABLE_TYPEFORM_TABLE_NAME);
+      console.log('Nombre de contacts:', contacts.length);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contacts,
+          airtableToken: import.meta.env.VITE_AIRTABLE_TOKEN,
+          airtableBaseId: import.meta.env.VITE_AIRTABLE_BASE_ID,
+          airtableTableName: import.meta.env.VITE_AIRTABLE_TYPEFORM_TABLE_NAME,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Erreur HTTP:', response.status, errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Résultat:', result);
+
+      const { results } = result;
+      alert(`✅ Synchronisation terminée!\n\n✓ ${results.created} nouveaux enregistrements créés\n✓ ${results.updated} enregistrements mis à jour\n${results.errors > 0 ? `❌ ${results.errors} erreurs` : ''}\n\nLes statuts et notes existants ont été préservés.`);
+
+      setLastUpdate(new Date());
+    } catch (error: any) {
+      console.error('❌ Erreur:', error);
+      alert(`❌ Erreur lors de la synchronisation:\n\n${error.message || error}\n\nVérifiez la console pour plus de détails.`);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'typeform' && formId) {
       fetchContacts();
@@ -263,6 +327,25 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
+              )}
+              {activeTab === 'typeform' && (
+                <button
+                  onClick={syncToAirtable}
+                  disabled={syncing || contacts.length === 0}
+                  className={`flex items-center gap-2 ${
+                    import.meta.env.VITE_AIRTABLE_TOKEN && import.meta.env.VITE_AIRTABLE_BASE_ID
+                      ? 'bg-blue-600 hover:bg-blue-700'
+                      : 'bg-orange-500 hover:bg-orange-600'
+                  } text-white px-6 py-3 rounded-lg transition-colors disabled:bg-gray-400 font-medium`}
+                  title={
+                    !(import.meta.env.VITE_AIRTABLE_TOKEN && import.meta.env.VITE_AIRTABLE_BASE_ID)
+                      ? 'Configuration Airtable manquante'
+                      : 'Synchroniser vers Airtable (préserve les statuts)'
+                  }
+                >
+                  <Database className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} />
+                  {syncing ? 'Synchronisation...' : 'Pousser vers Airtable'}
+                </button>
               )}
               {activeTab === 'airtable' && (
                 <button
