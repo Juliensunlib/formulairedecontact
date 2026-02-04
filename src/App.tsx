@@ -58,15 +58,11 @@ function App() {
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-typeform?form_id=${formId}`;
       console.log('Fetching:', url);
       console.log('Token present:', !!typeformToken);
-      console.log('Airtable configured:', !!(import.meta.env.VITE_AIRTABLE_TOKEN && import.meta.env.VITE_AIRTABLE_BASE_ID));
 
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           'X-Typeform-Token': typeformToken,
-          'X-Airtable-Token': import.meta.env.VITE_AIRTABLE_TOKEN || '',
-          'X-Airtable-Base-Id': import.meta.env.VITE_AIRTABLE_BASE_ID || '',
-          'X-Airtable-Table-Name': import.meta.env.VITE_AIRTABLE_TYPEFORM_TABLE_NAME || '',
         },
       });
 
@@ -84,13 +80,6 @@ function App() {
 
       const result = await response.json();
       setContacts(result.data || []);
-
-      if (result.airtableSync) {
-        const sync = result.airtableSync;
-        if (sync.enabled) {
-          console.log(`✓ Synchronisation Airtable: ${sync.synced}/${sync.total} réussis, ${sync.errors} erreurs`);
-        }
-      }
     } catch (error: any) {
       console.error('Error fetching contacts:', error);
       setError(error.message || 'Erreur de chargement');
@@ -138,64 +127,6 @@ function App() {
     }
   };
 
-  const syncTypeform = async () => {
-    const hasAirtableConfig = !!(
-      import.meta.env.VITE_AIRTABLE_TOKEN &&
-      import.meta.env.VITE_AIRTABLE_BASE_ID &&
-      import.meta.env.VITE_AIRTABLE_TYPEFORM_TABLE_NAME
-    );
-
-    if (!hasAirtableConfig) {
-      alert('❌ Configuration Airtable manquante !\n\nPour synchroniser vers Airtable, ajoutez ces variables dans votre fichier .env :\n\n• VITE_AIRTABLE_TOKEN\n• VITE_AIRTABLE_BASE_ID\n• VITE_AIRTABLE_TYPEFORM_TABLE_NAME\n\nCopiez les valeurs depuis Vercel → Settings → Environment Variables');
-      return;
-    }
-
-    setSyncing(true);
-    try {
-      const typeformToken = import.meta.env.VITE_TYPEFORM_TOKEN;
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-typeform?form_id=${formId}`;
-
-      console.log('🔵 Synchronisation vers Airtable...');
-      console.log('Table destination:', import.meta.env.VITE_AIRTABLE_TYPEFORM_TABLE_NAME);
-
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'X-Typeform-Token': typeformToken,
-          'X-Airtable-Token': import.meta.env.VITE_AIRTABLE_TOKEN || '',
-          'X-Airtable-Base-Id': import.meta.env.VITE_AIRTABLE_BASE_ID || '',
-          'X-Airtable-Table-Name': import.meta.env.VITE_AIRTABLE_TYPEFORM_TABLE_NAME || '',
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Erreur HTTP:', response.status, errorText);
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
-
-      const result = await response.json();
-      setContacts(result.data || []);
-      setLastUpdate(new Date());
-
-      if (result.airtableSync && result.airtableSync.enabled) {
-        const sync = result.airtableSync;
-        console.log('✅ Airtable sync:', sync);
-        if (sync.errors > 0) {
-          alert(`⚠️ Synchronisation vers Airtable terminée avec des erreurs :\n\n✓ ${sync.synced} enregistrements synchronisés\n❌ ${sync.errors} erreurs\n\nConsultez la console du navigateur pour plus de détails.`);
-        } else {
-          alert(`✓ Synchronisation vers Airtable réussie !\n\n${sync.synced} enregistrements ont été synchronisés vers la table "${import.meta.env.VITE_AIRTABLE_TYPEFORM_TABLE_NAME}".`);
-        }
-      } else {
-        alert('✓ Données Typeform récupérées, mais aucune synchronisation Airtable effectuée.');
-      }
-    } catch (error: any) {
-      console.error('❌ Error syncing:', error);
-      alert(`❌ Erreur lors de la synchronisation:\n\n${error.message || error}\n\nVérifiez la console pour plus de détails.`);
-    } finally {
-      setSyncing(false);
-    }
-  };
 
   const syncAirtable = async () => {
     setSyncing(true);
@@ -333,45 +264,14 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
                   </button>
                 </div>
               )}
-              <button
-                onClick={activeTab === 'typeform' ? syncTypeform : syncAirtable}
-                disabled={syncing}
-                className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 font-medium"
-              >
-                <RefreshCw className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} />
-                {syncing ? 'Synchronisation...' : 'Synchroniser'}
-              </button>
-              {activeTab === 'typeform' && (
+              {activeTab === 'airtable' && (
                 <button
-                  onClick={() => {
-                    const hasAirtableConfig = !!(
-                      import.meta.env.VITE_AIRTABLE_TOKEN &&
-                      import.meta.env.VITE_AIRTABLE_BASE_ID &&
-                      import.meta.env.VITE_AIRTABLE_TYPEFORM_TABLE_NAME
-                    );
-
-                    if (!hasAirtableConfig) {
-                      syncTypeform();
-                    } else if (confirm('Forcer la synchronisation complète de toutes les réponses Typeform vers Airtable ?')) {
-                      syncTypeform();
-                    }
-                  }}
+                  onClick={syncAirtable}
                   disabled={syncing}
-                  className={`flex items-center gap-2 ${
-                    import.meta.env.VITE_AIRTABLE_TOKEN && import.meta.env.VITE_AIRTABLE_BASE_ID
-                      ? 'bg-blue-600 hover:bg-blue-700'
-                      : 'bg-orange-500 hover:bg-orange-600'
-                  } text-white px-6 py-3 rounded-lg transition-colors disabled:bg-gray-400 font-medium`}
-                  title={
-                    !(import.meta.env.VITE_AIRTABLE_TOKEN && import.meta.env.VITE_AIRTABLE_BASE_ID)
-                      ? 'Configuration Airtable manquante - cliquez pour plus d\'infos'
-                      : 'Synchroniser toutes les réponses vers Airtable'
-                  }
+                  className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 font-medium"
                 >
-                  <Database className={`w-5 h-5`} />
-                  {import.meta.env.VITE_AIRTABLE_TOKEN && import.meta.env.VITE_AIRTABLE_BASE_ID
-                    ? 'Pousser vers Airtable'
-                    : '⚠️ Pousser vers Airtable (Non configuré)'}
+                  <RefreshCw className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} />
+                  {syncing ? 'Synchronisation...' : 'Synchroniser'}
                 </button>
               )}
             </div>

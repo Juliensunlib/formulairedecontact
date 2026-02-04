@@ -3,7 +3,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': '*',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey, X-Typeform-Token',
 };
 
 interface TypeformAnswer {
@@ -28,93 +28,6 @@ interface TypeformResponse {
   answers: TypeformAnswer[];
 }
 
-async function syncToAirtable(
-  typeformData: any,
-  airtableToken: string,
-  airtableBaseId: string,
-  airtableTableName: string
-): Promise<void> {
-  try {
-    const formula = `{Network ID} = '${typeformData.networkId}'`;
-    const searchUrl = `https://api.airtable.com/v0/${airtableBaseId}/${encodeURIComponent(airtableTableName)}?filterByFormula=${encodeURIComponent(formula)}`;
-
-    const searchResponse = await fetch(searchUrl, {
-      headers: {
-        'Authorization': `Bearer ${airtableToken}`,
-      },
-    });
-
-    let existingRecordId = null;
-    if (searchResponse.ok) {
-      const searchData = await searchResponse.json();
-      if (searchData.records && searchData.records.length > 0) {
-        existingRecordId = searchData.records[0].id;
-      }
-    }
-
-    const statusMapping: Record<string, string> = {
-      'new': 'Nouveau',
-      'in_progress': 'En cours',
-      'contacted': 'Contacté',
-      'completed': 'Terminé',
-      'archived': 'Archivé',
-    };
-
-    const priorityMapping: Record<string, string> = {
-      'low': 'Basse',
-      'medium': 'Moyenne',
-      'high': 'Haute',
-    };
-
-    const fields: Record<string, any> = {
-      '#': typeformData.responseId,
-      'Vous êtes': typeformData.requesterType || '',
-      'Séléctionnez un motif': typeformData.motif || '',
-      'Address': typeformData.address || '',
-      'Address line 2': typeformData.addressLine2 || '',
-      'City/Town': typeformData.city || '',
-      'State/Region/Province': typeformData.stateRegion || '',
-      'Zip/Post Code': typeformData.postalCode || '',
-      'Country': typeformData.country || '',
-      'First name': typeformData.firstName || '',
-      'Last name': typeformData.lastName || '',
-      'Phone number': typeformData.phone || '',
-      'Email': typeformData.email || '',
-      'Company': typeformData.company || '',
-      'Submit Date (UTC)': typeformData.submittedAt,
-      'Network ID': typeformData.networkId || '',
-      'Date de création': new Date().toISOString(),
-      'Statut': statusMapping[typeformData.status] || 'Nouveau',
-      'Priorité': priorityMapping[typeformData.priority] || 'Moyenne',
-      'Assigné à': typeformData.assignedTo || '',
-    };
-
-    if (existingRecordId) {
-      const updateUrl = `https://api.airtable.com/v0/${airtableBaseId}/${encodeURIComponent(airtableTableName)}/${existingRecordId}`;
-      await fetch(updateUrl, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${airtableToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ fields }),
-      });
-    } else {
-      const createUrl = `https://api.airtable.com/v0/${airtableBaseId}/${encodeURIComponent(airtableTableName)}`;
-      await fetch(createUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${airtableToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ fields }),
-      });
-    }
-  } catch (error) {
-    console.error('Erreur synchronisation Airtable:', error);
-  }
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -132,9 +45,6 @@ Deno.serve(async (req: Request) => {
     const url = new URL(req.url);
     const formId = url.searchParams.get('form_id');
     const typeformToken = req.headers.get('X-Typeform-Token');
-    const airtableToken = req.headers.get('X-Airtable-Token');
-    const airtableBaseId = req.headers.get('X-Airtable-Base-Id');
-    const airtableTableName = req.headers.get('X-Airtable-Table-Name');
 
     if (!formId) {
       return new Response(
@@ -202,9 +112,6 @@ Deno.serve(async (req: Request) => {
         }
       });
 
-      console.log('=== REPONSE ===');
-      console.log('answersMap:', JSON.stringify(answersMap, null, 2));
-
       const meta = metadataMap.get(response.token) || {
         status: 'new',
         priority: 'medium',
@@ -244,69 +151,11 @@ Deno.serve(async (req: Request) => {
       };
     });
 
-    let airtableSync = {
-      enabled: false,
-      synced: 0,
-      errors: 0,
-      total: 0,
-    };
-
-    if (airtableToken && airtableBaseId && airtableTableName) {
-      console.log(`=== SYNCHRONISATION AIRTABLE ===`);
-      console.log(`Nombre de réponses à synchroniser: ${enrichedResponses.length}`);
-
-      airtableSync.enabled = true;
-      airtableSync.total = enrichedResponses.length;
-
-      for (const enrichedResponse of enrichedResponses) {
-        try {
-          await syncToAirtable(
-            {
-              responseId: enrichedResponse.typeform_response_id,
-              submittedAt: enrichedResponse.submitted_at,
-              requesterType: enrichedResponse.requester_type,
-              motif: enrichedResponse.motif,
-              address: enrichedResponse.address,
-              addressLine2: enrichedResponse.address_line2,
-              city: enrichedResponse.city,
-              stateRegion: enrichedResponse.state_region,
-              postalCode: enrichedResponse.postal_code,
-              country: enrichedResponse.country,
-              firstName: enrichedResponse.name.split(' ')[0],
-              lastName: enrichedResponse.name.split(' ').slice(1).join(' '),
-              phone: enrichedResponse.phone,
-              email: enrichedResponse.email,
-              company: enrichedResponse.company,
-              networkId: enrichedResponse.network_id,
-              status: enrichedResponse.status,
-              priority: enrichedResponse.priority,
-              assignedTo: enrichedResponse.assigned_to,
-            },
-            airtableToken,
-            airtableBaseId,
-            airtableTableName
-          );
-          airtableSync.synced++;
-          console.log(`✓ Synchronisé: ${enrichedResponse.email || enrichedResponse.name} (${airtableSync.synced}/${enrichedResponses.length})`);
-        } catch (error) {
-          airtableSync.errors++;
-          console.error(`✗ Erreur sync: ${enrichedResponse.email || enrichedResponse.name}`, error);
-        }
-      }
-
-      console.log(`=== RÉSULTAT ===`);
-      console.log(`Synchronisés: ${airtableSync.synced}/${enrichedResponses.length}`);
-      console.log(`Erreurs: ${airtableSync.errors}`);
-    } else {
-      console.log('⚠️ Synchronisation Airtable désactivée (tokens manquants)');
-    }
-
     return new Response(
       JSON.stringify({
         success: true,
         data: enrichedResponses,
         total: enrichedResponses.length,
-        airtableSync,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
