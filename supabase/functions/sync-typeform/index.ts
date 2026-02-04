@@ -244,12 +244,19 @@ Deno.serve(async (req: Request) => {
       };
     });
 
+    let airtableSync = {
+      enabled: false,
+      synced: 0,
+      errors: 0,
+      total: 0,
+    };
+
     if (airtableToken && airtableBaseId && airtableTableName) {
       console.log(`=== SYNCHRONISATION AIRTABLE ===`);
       console.log(`Nombre de réponses à synchroniser: ${enrichedResponses.length}`);
 
-      let synced = 0;
-      let errors = 0;
+      airtableSync.enabled = true;
+      airtableSync.total = enrichedResponses.length;
 
       for (const enrichedResponse of enrichedResponses) {
         try {
@@ -279,17 +286,17 @@ Deno.serve(async (req: Request) => {
             airtableBaseId,
             airtableTableName
           );
-          synced++;
-          console.log(`✓ Synchronisé: ${enrichedResponse.email || enrichedResponse.name} (${synced}/${enrichedResponses.length})`);
+          airtableSync.synced++;
+          console.log(`✓ Synchronisé: ${enrichedResponse.email || enrichedResponse.name} (${airtableSync.synced}/${enrichedResponses.length})`);
         } catch (error) {
-          errors++;
+          airtableSync.errors++;
           console.error(`✗ Erreur sync: ${enrichedResponse.email || enrichedResponse.name}`, error);
         }
       }
 
       console.log(`=== RÉSULTAT ===`);
-      console.log(`Synchronisés: ${synced}/${enrichedResponses.length}`);
-      console.log(`Erreurs: ${errors}`);
+      console.log(`Synchronisés: ${airtableSync.synced}/${enrichedResponses.length}`);
+      console.log(`Erreurs: ${airtableSync.errors}`);
     } else {
       console.log('⚠️ Synchronisation Airtable désactivée (tokens manquants)');
     }
@@ -299,6 +306,7 @@ Deno.serve(async (req: Request) => {
         success: true,
         data: enrichedResponses,
         total: enrichedResponses.length,
+        airtableSync,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

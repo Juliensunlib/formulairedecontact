@@ -50,9 +50,15 @@ function App() {
     try {
       setError('');
       const typeformToken = import.meta.env.VITE_TYPEFORM_TOKEN;
+
+      if (!typeformToken) {
+        throw new Error('VITE_TYPEFORM_TOKEN manquant. Ajoutez-le dans le fichier .env ou copiez les variables depuis Vercel.');
+      }
+
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-typeform?form_id=${formId}`;
       console.log('Fetching:', url);
       console.log('Token present:', !!typeformToken);
+      console.log('Airtable configured:', !!(import.meta.env.VITE_AIRTABLE_TOKEN && import.meta.env.VITE_AIRTABLE_BASE_ID));
 
       const response = await fetch(url, {
         headers: {
@@ -78,6 +84,13 @@ function App() {
 
       const result = await response.json();
       setContacts(result.data || []);
+
+      if (result.airtableSync) {
+        const sync = result.airtableSync;
+        if (sync.enabled) {
+          console.log(`✓ Synchronisation Airtable: ${sync.synced}/${sync.total} réussis, ${sync.errors} erreurs`);
+        }
+      }
     } catch (error: any) {
       console.error('Error fetching contacts:', error);
       setError(error.message || 'Erreur de chargement');
@@ -126,13 +139,53 @@ function App() {
   };
 
   const syncTypeform = async () => {
+    const hasAirtableConfig = !!(
+      import.meta.env.VITE_AIRTABLE_TOKEN &&
+      import.meta.env.VITE_AIRTABLE_BASE_ID &&
+      import.meta.env.VITE_AIRTABLE_TABLE_NAME
+    );
+
+    if (!hasAirtableConfig) {
+      alert('❌ Configuration Airtable manquante !\n\nPour synchroniser vers Airtable, ajoutez ces variables dans votre fichier .env :\n\n• VITE_AIRTABLE_TOKEN\n• VITE_AIRTABLE_BASE_ID\n• VITE_AIRTABLE_TABLE_NAME\n\nCopiez les valeurs depuis Vercel → Settings → Environment Variables');
+      return;
+    }
+
     setSyncing(true);
     try {
-      await fetchContacts();
+      const typeformToken = import.meta.env.VITE_TYPEFORM_TOKEN;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-typeform?form_id=${formId}`;
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'X-Typeform-Token': typeformToken,
+          'X-Airtable-Token': import.meta.env.VITE_AIRTABLE_TOKEN || '',
+          'X-Airtable-Base-Id': import.meta.env.VITE_AIRTABLE_BASE_ID || '',
+          'X-Airtable-Table-Name': import.meta.env.VITE_AIRTABLE_TABLE_NAME || '',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      setContacts(result.data || []);
       setLastUpdate(new Date());
+
+      if (result.airtableSync && result.airtableSync.enabled) {
+        const sync = result.airtableSync;
+        if (sync.errors > 0) {
+          alert(`⚠️ Synchronisation vers Airtable terminée avec des erreurs :\n\n✓ ${sync.synced} enregistrements synchronisés\n❌ ${sync.errors} erreurs\n\nConsultez la console du navigateur pour plus de détails.`);
+        } else {
+          alert(`✓ Synchronisation vers Airtable réussie !\n\n${sync.synced} enregistrements ont été synchronisés vers Airtable.`);
+        }
+      } else {
+        alert('✓ Données Typeform récupérées, mais aucune synchronisation Airtable effectuée.');
+      }
     } catch (error) {
       console.error('Error syncing:', error);
-      alert('Erreur lors de la synchronisation');
+      alert('❌ Erreur lors de la synchronisation. Vérifiez la console pour plus de détails.');
     } finally {
       setSyncing(false);
     }
@@ -285,15 +338,34 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
               {activeTab === 'typeform' && (
                 <button
                   onClick={() => {
-                    if (confirm('Forcer la synchronisation complète de toutes les réponses Typeform vers Airtable ?')) {
+                    const hasAirtableConfig = !!(
+                      import.meta.env.VITE_AIRTABLE_TOKEN &&
+                      import.meta.env.VITE_AIRTABLE_BASE_ID &&
+                      import.meta.env.VITE_AIRTABLE_TABLE_NAME
+                    );
+
+                    if (!hasAirtableConfig) {
+                      syncTypeform();
+                    } else if (confirm('Forcer la synchronisation complète de toutes les réponses Typeform vers Airtable ?')) {
                       syncTypeform();
                     }
                   }}
                   disabled={syncing}
-                  className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 font-medium"
+                  className={`flex items-center gap-2 ${
+                    import.meta.env.VITE_AIRTABLE_TOKEN && import.meta.env.VITE_AIRTABLE_BASE_ID
+                      ? 'bg-blue-600 hover:bg-blue-700'
+                      : 'bg-orange-500 hover:bg-orange-600'
+                  } text-white px-6 py-3 rounded-lg transition-colors disabled:bg-gray-400 font-medium`}
+                  title={
+                    !(import.meta.env.VITE_AIRTABLE_TOKEN && import.meta.env.VITE_AIRTABLE_BASE_ID)
+                      ? 'Configuration Airtable manquante - cliquez pour plus d\'infos'
+                      : 'Synchroniser toutes les réponses vers Airtable'
+                  }
                 >
                   <Database className={`w-5 h-5`} />
-                  Pousser vers Airtable
+                  {import.meta.env.VITE_AIRTABLE_TOKEN && import.meta.env.VITE_AIRTABLE_BASE_ID
+                    ? 'Pousser vers Airtable'
+                    : '⚠️ Pousser vers Airtable (Non configuré)'}
                 </button>
               )}
             </div>
@@ -553,47 +625,73 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
               </div>
 
               <div className="space-y-4">
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <h3 className="font-medium text-purple-900 mb-2">IMPORTANT : Développement Local vs Vercel</h3>
+                  <div className="text-sm text-purple-800 space-y-2">
+                    <p><strong>Sur Vercel (Production) :</strong> Variables dans Vercel → Settings → Environment Variables</p>
+                    <p><strong>En local (Développement) :</strong> Variables dans le fichier <code className="bg-purple-100 px-1 rounded">.env</code> à la racine du projet</p>
+                    <p className="font-semibold text-purple-900 mt-2">Ces deux endroits sont SÉPARÉS ! Pour que ça fonctionne en local, copiez vos variables Vercel dans le fichier .env</p>
+                  </div>
+                </div>
+
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="font-medium text-blue-900 mb-2">Comment configurer ?</h3>
+                  <h3 className="font-medium text-blue-900 mb-2">Configuration pour développement LOCAL</h3>
                   <ol className="text-sm text-blue-800 space-y-2 list-decimal list-inside">
-                    <li>Créez un token Typeform avec les permissions "Read responses" sur <a href="https://admin.typeform.com/account#/section/tokens" target="_blank" rel="noopener noreferrer" className="underline">cette page</a></li>
-                    <li>Trouvez l'ID de votre formulaire dans son URL (ex: https://admin.typeform.com/form/<strong>AbC123</strong>/)</li>
-                    <li>Dans Vercel, allez dans <strong>Settings → Environment Variables</strong></li>
-                    <li>Ajoutez ces variables :
+                    <li>Ouvrez le fichier <code className="bg-blue-100 px-1 rounded">.env</code> à la racine du projet</li>
+                    <li>Allez sur <a href="https://vercel.com" target="_blank" rel="noopener noreferrer" className="underline font-medium">Vercel</a> → Votre projet → Settings → Environment Variables</li>
+                    <li>Copiez les valeurs de Vercel et collez-les dans votre .env :
                       <ul className="ml-6 mt-2 space-y-1">
-                        <li><code className="bg-blue-100 px-2 py-0.5 rounded">VITE_TYPEFORM_TOKEN</code> : votre token</li>
-                        <li><code className="bg-blue-100 px-2 py-0.5 rounded">VITE_TYPEFORM_FORM_ID</code> : l'ID du formulaire</li>
+                        <li><code className="bg-blue-100 px-2 py-0.5 rounded">VITE_TYPEFORM_TOKEN</code> (obligatoire)</li>
+                        <li><code className="bg-blue-100 px-2 py-0.5 rounded">VITE_TYPEFORM_FORM_ID</code> (obligatoire)</li>
+                        <li><code className="bg-blue-100 px-2 py-0.5 rounded">VITE_AIRTABLE_TOKEN</code> (pour sync Airtable)</li>
+                        <li><code className="bg-blue-100 px-2 py-0.5 rounded">VITE_AIRTABLE_BASE_ID</code> (pour sync Airtable)</li>
+                        <li><code className="bg-blue-100 px-2 py-0.5 rounded">VITE_AIRTABLE_TABLE_NAME</code> (pour sync Airtable)</li>
                       </ul>
                     </li>
-                    <li>Redéployez votre application</li>
+                    <li>Sauvegardez le fichier .env</li>
+                    <li>Redémarrez le serveur de développement (arrêtez et relancez)</li>
                   </ol>
                 </div>
 
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <h3 className="font-medium text-yellow-900 mb-2">Variables actuelles</h3>
+                  <h3 className="font-medium text-yellow-900 mb-2">Variables actuelles (Local)</h3>
                   <div className="text-sm text-yellow-800 space-y-2">
                     <div>
                       <strong>VITE_TYPEFORM_FORM_ID:</strong>{' '}
                       <code className="bg-yellow-100 px-2 py-0.5 rounded">
-                        {formId || '(non configuré)'}
+                        {formId || '❌ Non configuré'}
                       </code>
                     </div>
                     <div>
                       <strong>VITE_TYPEFORM_TOKEN:</strong>{' '}
                       <code className="bg-yellow-100 px-2 py-0.5 rounded">
-                        {import.meta.env.VITE_TYPEFORM_TOKEN ? '••••••••' : '(non configuré)'}
+                        {import.meta.env.VITE_TYPEFORM_TOKEN ? '✓ Configuré (••••••••)' : '❌ Non configuré'}
+                      </code>
+                    </div>
+                    <div>
+                      <strong>VITE_AIRTABLE_TOKEN:</strong>{' '}
+                      <code className="bg-yellow-100 px-2 py-0.5 rounded">
+                        {import.meta.env.VITE_AIRTABLE_TOKEN ? '✓ Configuré (••••••••)' : '❌ Non configuré'}
+                      </code>
+                    </div>
+                    <div>
+                      <strong>VITE_AIRTABLE_BASE_ID:</strong>{' '}
+                      <code className="bg-yellow-100 px-2 py-0.5 rounded">
+                        {import.meta.env.VITE_AIRTABLE_BASE_ID || '❌ Non configuré'}
                       </code>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <h3 className="font-medium text-red-900 mb-2">Erreur actuelle</h3>
-                  <p className="text-sm text-red-800">{error || 'Typeform API error: Forbidden'}</p>
-                  <p className="text-sm text-red-700 mt-2">
-                    Cette erreur signifie que le token est invalide, expiré, ou n'a pas les permissions nécessaires pour accéder à ce formulaire.
-                  </p>
-                </div>
+                {error && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <h3 className="font-medium text-red-900 mb-2">Erreur actuelle</h3>
+                    <p className="text-sm text-red-800 font-medium">{error}</p>
+                    <p className="text-sm text-red-700 mt-2">
+                      Si le message indique "token manquant", ajoutez-le dans votre fichier .env local. Les variables Vercel ne sont pas accessibles en développement local.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="mt-6 flex justify-end">
