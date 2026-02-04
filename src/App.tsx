@@ -273,7 +273,9 @@ function App() {
               results.errors++;
               const errorData = await createResponse.json();
               console.error('❌ Erreur création:', contact.typeform_response_id);
-              console.error('Détails:', errorData);
+              console.error('Détails complets:', JSON.stringify(errorData, null, 2));
+              console.error('Message d\'erreur:', errorData.error?.message || errorData.message || 'Aucun message');
+              console.error('Type d\'erreur:', errorData.error?.type || 'Unknown');
               console.error('Champs envoyés:', newFields);
             }
           }
