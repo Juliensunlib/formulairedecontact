@@ -142,13 +142,11 @@ function App() {
   };
 
   const syncToAirtable = async () => {
-    const hasAirtableConfig = !!(
-      import.meta.env.VITE_AIRTABLE_TOKEN &&
-      import.meta.env.VITE_AIRTABLE_BASE_ID &&
-      import.meta.env.VITE_AIRTABLE_TYPEFORM_TABLE_NAME
-    );
+    const airtableToken = import.meta.env.VITE_AIRTABLE_TOKEN;
+    const airtableBaseId = import.meta.env.VITE_AIRTABLE_BASE_ID;
+    const airtableTableName = import.meta.env.VITE_AIRTABLE_TYPEFORM_TABLE_NAME;
 
-    if (!hasAirtableConfig) {
+    if (!airtableToken || !airtableBaseId || !airtableTableName) {
       alert('❌ Configuration Airtable manquante !\n\nAjoutez ces variables dans .env ou sur Vercel:\n\n• VITE_AIRTABLE_TOKEN\n• VITE_AIRTABLE_BASE_ID\n• VITE_AIRTABLE_TYPEFORM_TABLE_NAME');
       return;
     }
@@ -164,36 +162,123 @@ function App() {
 
     setSyncing(true);
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-to-airtable`;
-
       console.log('🔵 Synchronisation vers Airtable...');
-      console.log('Table destination:', import.meta.env.VITE_AIRTABLE_TYPEFORM_TABLE_NAME);
+      console.log('Table destination:', airtableTableName);
       console.log('Nombre de contacts:', contacts.length);
 
-      const response = await fetch(url, {
-        method: 'POST',
+      const airtableUrl = `https://api.airtable.com/v0/${airtableBaseId}/${encodeURIComponent(airtableTableName)}`;
+
+      const existingRecordsResponse = await fetch(airtableUrl, {
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${airtableToken}`,
         },
-        body: JSON.stringify({
-          contacts,
-          airtableToken: import.meta.env.VITE_AIRTABLE_TOKEN,
-          airtableBaseId: import.meta.env.VITE_AIRTABLE_BASE_ID,
-          airtableTableName: import.meta.env.VITE_AIRTABLE_TYPEFORM_TABLE_NAME,
-        }),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Erreur HTTP:', response.status, errorText);
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      if (!existingRecordsResponse.ok) {
+        const errorText = await existingRecordsResponse.text();
+        throw new Error(`Erreur Airtable: ${existingRecordsResponse.status} - ${errorText}`);
       }
 
-      const result = await response.json();
-      console.log('✅ Résultat:', result);
+      const existingData = await existingRecordsResponse.json();
+      const existingRecords = existingData.records || [];
 
-      const { results } = result;
+      const existingMap = new Map();
+      existingRecords.forEach((record: any) => {
+        const responseId = record.fields['Response ID'];
+        if (responseId) {
+          existingMap.set(responseId, record);
+        }
+      });
+
+      const results = {
+        created: 0,
+        updated: 0,
+        errors: 0,
+      };
+
+      for (const contact of contacts) {
+        try {
+          const existingRecord = existingMap.get(contact.typeform_response_id);
+
+          const baseFields = {
+            'Response ID': contact.typeform_response_id,
+            'Nom': contact.name || '',
+            'Email': contact.email || '',
+            'Téléphone': contact.phone || '',
+            'Entreprise': contact.company || '',
+            'Message': contact.message || '',
+            'Type de demandeur': contact.requester_type || '',
+            'Motif': contact.motif || '',
+            'Adresse': contact.address || '',
+            'Ville': contact.city || '',
+            'Code postal': contact.postal_code || '',
+            'Pays': contact.country || '',
+            'Date de soumission': contact.submitted_at || new Date().toISOString(),
+          };
+
+          if (existingRecord) {
+            const fieldsToUpdate: any = { ...baseFields };
+
+            if (existingRecord.fields['Statut']) {
+              fieldsToUpdate['Statut'] = existingRecord.fields['Statut'];
+            }
+            if (existingRecord.fields['Priorité']) {
+              fieldsToUpdate['Priorité'] = existingRecord.fields['Priorité'];
+            }
+            if (existingRecord.fields['Notes']) {
+              fieldsToUpdate['Notes'] = existingRecord.fields['Notes'];
+            }
+            if (existingRecord.fields['Assigné à']) {
+              fieldsToUpdate['Assigné à'] = existingRecord.fields['Assigné à'];
+            }
+
+            const updateResponse = await fetch(`${airtableUrl}/${existingRecord.id}`, {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${airtableToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ fields: fieldsToUpdate }),
+            });
+
+            if (updateResponse.ok) {
+              results.updated++;
+            } else {
+              results.errors++;
+              console.error('Erreur mise à jour:', contact.typeform_response_id);
+            }
+          } else {
+            const newFields = {
+              ...baseFields,
+              'Statut': 'Nouveau',
+              'Priorité': 'Moyenne',
+            };
+
+            const createResponse = await fetch(airtableUrl, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${airtableToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ fields: newFields }),
+            });
+
+            if (createResponse.ok) {
+              results.created++;
+            } else {
+              results.errors++;
+              console.error('Erreur création:', contact.typeform_response_id);
+            }
+          }
+
+          await new Promise(resolve => setTimeout(resolve, 200));
+
+        } catch (error) {
+          results.errors++;
+          console.error('Erreur:', contact.typeform_response_id, error);
+        }
+      }
+
       alert(`✅ Synchronisation terminée!\n\n✓ ${results.created} nouveaux enregistrements créés\n✓ ${results.updated} enregistrements mis à jour\n${results.errors > 0 ? `❌ ${results.errors} erreurs` : ''}\n\nLes statuts et notes existants ont été préservés.`);
 
       setLastUpdate(new Date());
