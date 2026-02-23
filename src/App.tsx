@@ -774,12 +774,13 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
 
         {activeTab === 'airtable' && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
               <StatsCard title="Nouveaux" value={airtableStats.new} icon={Inbox} color="green" />
               <StatsCard title="A contacter" value={airtableStats.to_contact} icon={Bell} color="blue" />
+              <StatsCard title="A relancer" value={airtableStats.to_relaunch} icon={Clock} color="yellow" />
               <StatsCard title="Qualifiés" value={airtableStats.qualified} icon={CheckCircle} color="green" />
               <StatsCard title="Hors Critères" value={airtableStats.out_of_criteria} icon={Trash2} color="red" />
-              <StatsCard title="Total" value={airtableStats.total} icon={Archive} color="yellow" />
+              <StatsCard title="Total" value={airtableStats.total} icon={Archive} color="gray" />
             </div>
 
             {airtableError && (
