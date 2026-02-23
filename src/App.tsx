@@ -399,7 +399,10 @@ function App() {
       filtered = filtered.filter(r => {
         const rhField = r.fields['RH'];
         if (Array.isArray(rhField) && rhField.length > 0) {
-          return rhField.includes(airtableAssignedToFilter);
+          const collaborator = rhCollaborators.find(c => c.name === airtableAssignedToFilter);
+          if (collaborator) {
+            return rhField.includes(collaborator.id);
+          }
         }
         return false;
       });
@@ -416,7 +419,7 @@ function App() {
     });
 
     setFilteredAirtableRecords(filtered);
-  }, [airtableRecords, airtableStatusFilter, airtableAssignedToFilter, airtablePartnerFilter]);
+  }, [airtableRecords, airtableStatusFilter, airtableAssignedToFilter, airtablePartnerFilter, rhCollaborators]);
 
   const stats = {
     new: contacts.filter(c => c.status === 'new').length,
@@ -806,6 +809,7 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
                   <AirtableCard
                     key={record.id}
                     record={record}
+                    rhCollaborators={rhCollaborators}
                     onClick={() => setSelectedAirtableRecord(record)}
                   />
                 ))}

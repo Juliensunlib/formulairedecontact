@@ -1,4 +1,4 @@
-import { AirtableRecord, mapStatusFromAirtable, mapPriorityFromAirtable } from '../lib/airtable';
+import { AirtableRecord, mapStatusFromAirtable, mapPriorityFromAirtable, RHCollaborator } from '../lib/airtable';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
 import { User, Building2 } from 'lucide-react';
@@ -6,13 +6,21 @@ import { User, Building2 } from 'lucide-react';
 interface AirtableCardProps {
   record: AirtableRecord;
   onClick: () => void;
+  rhCollaborators: RHCollaborator[];
 }
 
-export function AirtableCard({ record, onClick }: AirtableCardProps) {
+export function AirtableCard({ record, onClick, rhCollaborators }: AirtableCardProps) {
   const status = mapStatusFromAirtable(record.fields['Statut'] as string);
   const priority = mapPriorityFromAirtable(record.fields['Priorité'] as string);
   const rhField = record.fields['RH'];
-  const assignedTo = Array.isArray(rhField) && rhField.length > 0 ? rhField.join(', ') : '';
+
+  const assignedTo = Array.isArray(rhField) && rhField.length > 0
+    ? rhField.map(rhId => {
+        const collaborator = rhCollaborators.find(c => c.id === rhId);
+        return collaborator ? collaborator.name : rhId;
+      }).join(', ')
+    : '';
+
   const partner = record.fields['Partenaire'] as string;
 
   const formatValue = (value: any): string => {
