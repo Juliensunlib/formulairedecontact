@@ -409,7 +409,16 @@ function App() {
     }
 
     if (airtablePartnerFilter !== 'all') {
-      filtered = filtered.filter(r => (r.fields['Partenaire'] as string) === airtablePartnerFilter);
+      filtered = filtered.filter(r => {
+        const partner = r.fields['Partenaire'] as string;
+        const normalizedPartner = partner?.trim() || '';
+        const normalizedFilter = airtablePartnerFilter.trim();
+        const matches = normalizedPartner === normalizedFilter;
+        if (!matches && normalizedPartner) {
+          console.log(`Partenaire non trouvé - Record: "${normalizedPartner}" vs Filter: "${normalizedFilter}"`);
+        }
+        return matches;
+      });
     }
 
     filtered.sort((a, b) => {
@@ -679,7 +688,10 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   >
                     <option value="all">Tous les partenaires</option>
-                    {Array.from(new Set(airtableRecords.map(r => r.fields['Partenaire'] as string).filter(Boolean))).sort().map(name => (
+                    {Array.from(new Set(airtableRecords.map(r => {
+                      const partner = r.fields['Partenaire'] as string;
+                      return partner?.trim();
+                    }).filter(Boolean))).sort().map(name => (
                       <option key={name} value={name}>{name}</option>
                     ))}
                   </select>
