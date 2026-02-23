@@ -117,6 +117,7 @@ Deno.serve(async (req: Request) => {
         priority: 'medium',
         notes: null,
         assigned_to: null,
+        partner: null,
       };
 
       const firstName = answersMap['976acafa-220b-444d-b598-92ab2d62ab56'] || '';
@@ -147,6 +148,7 @@ Deno.serve(async (req: Request) => {
         priority: meta.priority,
         notes: meta.notes,
         assigned_to: meta.assigned_to,
+        partner: meta.partner,
         raw_data: response,
       };
     });
