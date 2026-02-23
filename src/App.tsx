@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { RefreshCw, Filter, Inbox, Clock, CheckCircle, Archive, Sun, Bell, Trash2, X, Database } from 'lucide-react';
 import { ContactRequest } from './lib/supabase';
-import { AirtableRecord, fetchAirtableRecords } from './lib/airtable';
+import { AirtableRecord, fetchAirtableRecords, fetchRHCollaborators, RHCollaborator } from './lib/airtable';
 import { ContactCard } from './components/ContactCard';
 import { ContactModal } from './components/ContactModal';
 import { AirtableCard } from './components/AirtableCard';
@@ -44,6 +44,7 @@ function App() {
   const formId = import.meta.env.VITE_TYPEFORM_FORM_ID || '';
   const [error, setError] = useState<string>('');
   const [showConfig, setShowConfig] = useState(false);
+  const [rhCollaborators, setRhCollaborators] = useState<RHCollaborator[]>([]);
 
   const fetchContacts = async () => {
     if (!formId) {
@@ -314,6 +315,19 @@ function App() {
   };
 
   useEffect(() => {
+    const loadRHCollaborators = async () => {
+      try {
+        const collaborators = await fetchRHCollaborators();
+        setRhCollaborators(collaborators);
+      } catch (error) {
+        console.error('Erreur chargement collaborateurs RH:', error);
+      }
+    };
+
+    loadRHCollaborators();
+  }, []);
+
+  useEffect(() => {
     if (activeTab === 'typeform' && formId) {
       fetchContacts();
 
@@ -579,8 +593,8 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     >
                       <option value="all">Tous les collaborateurs</option>
-                      {Array.from(new Set(contacts.map(c => c.assigned_to).filter(Boolean))).sort().map(name => (
-                        <option key={name} value={name}>{name}</option>
+                      {rhCollaborators.map(collaborator => (
+                        <option key={collaborator.id} value={collaborator.name}>{collaborator.name}</option>
                       ))}
                     </select>
                   </div>
@@ -638,8 +652,8 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   >
                     <option value="all">Tous les collaborateurs</option>
-                    {Array.from(new Set(airtableRecords.map(r => r.fields['Assigné à'] as string).filter(Boolean))).sort().map(name => (
-                      <option key={name} value={name}>{name}</option>
+                    {rhCollaborators.map(collaborator => (
+                      <option key={collaborator.id} value={collaborator.name}>{collaborator.name}</option>
                     ))}
                   </select>
                 </div>
