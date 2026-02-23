@@ -22,6 +22,8 @@ function App() {
   const [airtableLoading, setAirtableLoading] = useState(false);
   const [airtableError, setAirtableError] = useState<string>('');
   const [airtableStatusFilter, setAirtableStatusFilter] = useState<string>('all');
+  const [airtableAssignedToFilter, setAirtableAssignedToFilter] = useState<string>('all');
+  const [airtablePartnerFilter, setAirtablePartnerFilter] = useState<string>('all');
   const [airtableStats, setAirtableStats] = useState({
     new: 0,
     in_progress: 0,
@@ -35,6 +37,8 @@ function App() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [assignedToFilter, setAssignedToFilter] = useState<string>('all');
+  const [partnerFilter, setPartnerFilter] = useState<string>('all');
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [newContactsCount, setNewContactsCount] = useState(0);
   const formId = import.meta.env.VITE_TYPEFORM_FORM_ID || '';
@@ -350,6 +354,14 @@ function App() {
       filtered = filtered.filter(c => c.requester_type === typeFilter);
     }
 
+    if (assignedToFilter !== 'all') {
+      filtered = filtered.filter(c => c.assigned_to === assignedToFilter);
+    }
+
+    if (partnerFilter !== 'all') {
+      filtered = filtered.filter(c => c.partner === partnerFilter);
+    }
+
     filtered.sort((a, b) => {
       const dateA = new Date(a.submitted_at).getTime();
       const dateB = new Date(b.submitted_at).getTime();
@@ -357,13 +369,21 @@ function App() {
     });
 
     setFilteredContacts(filtered);
-  }, [contacts, statusFilter, priorityFilter, typeFilter]);
+  }, [contacts, statusFilter, priorityFilter, typeFilter, assignedToFilter, partnerFilter]);
 
   useEffect(() => {
     let filtered = [...airtableRecords];
 
     if (airtableStatusFilter !== 'all') {
       filtered = filtered.filter(r => (r.fields['Statut'] as string) === airtableStatusFilter);
+    }
+
+    if (airtableAssignedToFilter !== 'all') {
+      filtered = filtered.filter(r => (r.fields['Assigné à'] as string) === airtableAssignedToFilter);
+    }
+
+    if (airtablePartnerFilter !== 'all') {
+      filtered = filtered.filter(r => (r.fields['Partenaire'] as string) === airtablePartnerFilter);
     }
 
     filtered.sort((a, b) => {
@@ -373,7 +393,7 @@ function App() {
     });
 
     setFilteredAirtableRecords(filtered);
-  }, [airtableRecords, airtableStatusFilter]);
+  }, [airtableRecords, airtableStatusFilter, airtableAssignedToFilter, airtablePartnerFilter]);
 
   const stats = {
     new: contacts.filter(c => c.status === 'new').length,
@@ -500,7 +520,7 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
                   <Filter className="w-5 h-5 text-gray-600" />
                   <h3 className="font-medium text-gray-900">Filtres</h3>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Statut
@@ -549,6 +569,36 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
                       <option value="Une collectivité">Une collectivité</option>
                     </select>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Assigné à
+                    </label>
+                    <select
+                      value={assignedToFilter}
+                      onChange={(e) => setAssignedToFilter(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    >
+                      <option value="all">Tous les collaborateurs</option>
+                      {Array.from(new Set(contacts.map(c => c.assigned_to).filter(Boolean))).sort().map(name => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Partenaire
+                    </label>
+                    <select
+                      value={partnerFilter}
+                      onChange={(e) => setPartnerFilter(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    >
+                      <option value="all">Tous les partenaires</option>
+                      {Array.from(new Set(contacts.map(c => c.partner).filter(Boolean))).sort().map(name => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             </>
@@ -560,22 +610,54 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
                 <Filter className="w-5 h-5 text-gray-600" />
                 <h3 className="font-medium text-gray-900">Filtres - Leads Solaires</h3>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Statut
-                </label>
-                <select
-                  value={airtableStatusFilter}
-                  onChange={(e) => setAirtableStatusFilter(e.target.value)}
-                  className="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                >
-                  <option value="all">Tous les statuts</option>
-                  <option value="Nouveau">Nouveau</option>
-                  <option value="En cours">En cours</option>
-                  <option value="Contacté">Contacté</option>
-                  <option value="Terminé">Terminé</option>
-                  <option value="Archivé">Archivé</option>
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Statut
+                  </label>
+                  <select
+                    value={airtableStatusFilter}
+                    onChange={(e) => setAirtableStatusFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  >
+                    <option value="all">Tous les statuts</option>
+                    <option value="Nouveau">Nouveau</option>
+                    <option value="En cours">En cours</option>
+                    <option value="Contacté">Contacté</option>
+                    <option value="Terminé">Terminé</option>
+                    <option value="Archivé">Archivé</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Assigné à
+                  </label>
+                  <select
+                    value={airtableAssignedToFilter}
+                    onChange={(e) => setAirtableAssignedToFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  >
+                    <option value="all">Tous les collaborateurs</option>
+                    {Array.from(new Set(airtableRecords.map(r => r.fields['Assigné à'] as string).filter(Boolean))).sort().map(name => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Partenaire
+                  </label>
+                  <select
+                    value={airtablePartnerFilter}
+                    onChange={(e) => setAirtablePartnerFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  >
+                    <option value="all">Tous les partenaires</option>
+                    {Array.from(new Set(airtableRecords.map(r => r.fields['Partenaire'] as string).filter(Boolean))).sort().map(name => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           )}

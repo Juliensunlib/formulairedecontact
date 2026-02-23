@@ -1,4 +1,4 @@
-import { X, Calendar, FileText, User, Trash2, CheckCircle2, Database } from 'lucide-react';
+import { X, Calendar, FileText, User, Trash2, CheckCircle2, Database, Building2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { AirtableRecord, updateAirtableRecord, mapStatusFromAirtable, mapPriorityFromAirtable, mapStatusToAirtable, mapPriorityToAirtable, fetchRHCollaborators, RHCollaborator } from '../lib/airtable';
 import { StatusBadge } from './StatusBadge';
@@ -18,6 +18,7 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
     mapPriorityFromAirtable(record.fields['Priorité'] as string)
   );
   const [notes, setNotes] = useState((record.fields['Notes internes'] as string) || '');
+  const [partner, setPartner] = useState((record.fields['Partenaire'] as string) || '');
   const [collaborators, setCollaborators] = useState<RHCollaborator[]>([]);
   const [selectedCollaboratorId, setSelectedCollaboratorId] = useState<string>('');
   const [loadingCollaborators, setLoadingCollaborators] = useState(true);
@@ -69,6 +70,7 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
         'Statut': mapStatusToAirtable(status),
         'Priorité': mapPriorityToAirtable(priority),
         'Notes internes': notes || '',
+        'Partenaire': partner || '',
       };
 
       if (selectedCollaboratorId) {
@@ -253,6 +255,20 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
                   ))}
                 </select>
               )}
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Building2 className="w-4 h-4 inline mr-1" />
+                Partenaire
+              </label>
+              <input
+                type="text"
+                value={partner}
+                onChange={(e) => setPartner(e.target.value)}
+                placeholder="Nom du partenaire..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              />
             </div>
 
             <div>

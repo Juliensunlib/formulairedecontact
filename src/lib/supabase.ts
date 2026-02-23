@@ -25,6 +25,7 @@ export interface ContactRequest {
   priority: 'low' | 'medium' | 'high';
   notes?: string;
   assigned_to?: string;
+  partner?: string;
   raw_data: any;
 }
 
@@ -34,6 +35,7 @@ export interface TypeformMetadata {
   priority: 'low' | 'medium' | 'high';
   notes?: string;
   assigned_to?: string;
+  partner?: string;
   created_at: string;
   updated_at: string;
 }

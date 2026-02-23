@@ -1,7 +1,7 @@
 import { AirtableRecord, mapStatusFromAirtable, mapPriorityFromAirtable } from '../lib/airtable';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
-import { User } from 'lucide-react';
+import { User, Building2 } from 'lucide-react';
 
 interface AirtableCardProps {
   record: AirtableRecord;
@@ -12,6 +12,7 @@ export function AirtableCard({ record, onClick }: AirtableCardProps) {
   const status = mapStatusFromAirtable(record.fields['Statut'] as string);
   const priority = mapPriorityFromAirtable(record.fields['Priorité'] as string);
   const assignedTo = record.fields['Assigné à'] as string;
+  const partner = record.fields['Partenaire'] as string;
 
   const formatValue = (value: any): string => {
     if (value === null || value === undefined) return '-';
@@ -21,7 +22,7 @@ export function AirtableCard({ record, onClick }: AirtableCardProps) {
     return String(value);
   };
 
-  const fields = Object.entries(record.fields).filter(([key]) => key !== 'Assigné à');
+  const fields = Object.entries(record.fields).filter(([key]) => key !== 'Assigné à' && key !== 'Partenaire');
   const displayFields = fields.slice(0, 6);
 
   return (
@@ -35,12 +36,20 @@ export function AirtableCard({ record, onClick }: AirtableCardProps) {
           <PriorityBadge priority={priority} />
         </div>
       </div>
-      {assignedTo && (
-        <div className="flex items-center text-sm text-green-700 bg-green-50 px-3 py-1.5 rounded mb-3 w-fit">
-          <User className="w-4 h-4 mr-1.5" />
-          <span className="font-medium">{assignedTo}</span>
-        </div>
-      )}
+      <div className="flex flex-wrap gap-2 mb-3">
+        {assignedTo && (
+          <div className="flex items-center text-sm text-green-700 bg-green-50 px-3 py-1.5 rounded w-fit">
+            <User className="w-4 h-4 mr-1.5" />
+            <span className="font-medium">{assignedTo}</span>
+          </div>
+        )}
+        {partner && (
+          <div className="flex items-center text-sm text-blue-700 bg-blue-50 px-3 py-1.5 rounded w-fit">
+            <Building2 className="w-4 h-4 mr-1.5" />
+            <span className="font-medium">{partner}</span>
+          </div>
+        )}
+      </div>
       <div className="space-y-3">
         {displayFields.map(([key, value]) => (
           <div key={key} className="border-b border-gray-100 pb-2 last:border-0">

@@ -16,6 +16,7 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
   const [priority, setPriority] = useState(contact.priority);
   const [notes, setNotes] = useState(contact.notes || '');
   const [assignedTo, setAssignedTo] = useState(contact.assigned_to || '');
+  const [partner, setPartner] = useState(contact.partner || '');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [collaborators, setCollaborators] = useState<RHCollaborator[]>([]);
@@ -64,6 +65,7 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
             priority,
             notes: notes || null,
             assigned_to: assignedTo || null,
+            partner: partner || null,
           })
           .eq('typeform_response_id', contact.typeform_response_id);
 
@@ -77,6 +79,7 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
             priority,
             notes: notes || null,
             assigned_to: assignedTo || null,
+            partner: partner || null,
           });
 
         if (error) throw error;
@@ -341,6 +344,20 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
                 ))}
               </select>
             )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Building2 className="w-4 h-4 inline mr-1" />
+              Partenaire
+            </label>
+            <input
+              type="text"
+              value={partner}
+              onChange={(e) => setPartner(e.target.value)}
+              placeholder="Nom du partenaire..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            />
           </div>
 
           <div>
