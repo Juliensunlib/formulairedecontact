@@ -11,10 +11,10 @@ export interface AirtableResponse {
 
 const statusMapping: Record<string, string> = {
   'new': 'Nouveau',
-  'in_progress': 'En cours',
-  'contacted': 'Contacté',
-  'completed': 'Terminé',
-  'archived': 'Archivé',
+  'to_contact': 'A contacter',
+  'qualified': 'Qualifié',
+  'out_of_criteria': 'Hors Critères',
+  'to_relaunch': 'A relancer',
 };
 
 const priorityMapping: Record<string, string> = {
@@ -25,10 +25,10 @@ const priorityMapping: Record<string, string> = {
 
 const reverseStatusMapping: Record<string, string> = {
   'Nouveau': 'new',
-  'En cours': 'in_progress',
-  'Contacté': 'contacted',
-  'Terminé': 'completed',
-  'Archivé': 'archived',
+  'A contacter': 'to_contact',
+  'Qualifié': 'qualified',
+  'Hors Critères': 'out_of_criteria',
+  'A relancer': 'to_relaunch',
 };
 
 const reversePriorityMapping: Record<string, string> = {

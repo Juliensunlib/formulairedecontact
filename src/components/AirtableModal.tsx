@@ -11,7 +11,7 @@ interface AirtableModalProps {
 }
 
 export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps) {
-  const [status, setStatus] = useState<'new' | 'in_progress' | 'contacted' | 'completed' | 'archived'>(
+  const [status, setStatus] = useState<'new' | 'to_contact' | 'qualified' | 'out_of_criteria' | 'to_relaunch'>(
     mapStatusFromAirtable(record.fields['Statut'] as string)
   );
   const [priority, setPriority] = useState<'low' | 'medium' | 'high'>(
@@ -90,19 +90,19 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
   };
 
   const handleDelete = async () => {
-    if (!confirm('Êtes-vous sûr de vouloir archiver cet enregistrement ?')) return;
+    if (!confirm('Êtes-vous sûr de vouloir marquer ce lead comme "Hors Critères" ?')) return;
 
     setDeleting(true);
     try {
       await updateAirtableRecord(record.id, {
-        'Statut': mapStatusToAirtable('archived'),
+        'Statut': mapStatusToAirtable('out_of_criteria'),
       });
 
       if (onUpdate) onUpdate();
       onClose();
     } catch (error) {
-      console.error('Error archiving record:', error);
-      alert('Erreur lors de l\'archivage');
+      console.error('Error updating record:', error);
+      alert('Erreur lors de la mise à jour');
     } finally {
       setDeleting(false);
     }
@@ -209,10 +209,10 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 >
                   <option value="new">Nouveau</option>
-                  <option value="in_progress">En cours</option>
-                  <option value="contacted">Contacté</option>
-                  <option value="completed">Terminé</option>
-                  <option value="archived">Archivé</option>
+                  <option value="to_contact">A contacter</option>
+                  <option value="qualified">Qualifié</option>
+                  <option value="out_of_criteria">Hors Critères</option>
+                  <option value="to_relaunch">A relancer</option>
                 </select>
               </div>
 
@@ -289,20 +289,20 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
           <div className="space-y-3">
             <div className="flex gap-2 p-3 bg-gray-50 rounded-lg">
               <button
-                onClick={() => handleQuickAction('in_progress')}
-                disabled={status === 'in_progress'}
+                onClick={() => handleQuickAction('to_contact')}
+                disabled={status === 'to_contact'}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                Marquer en cours
+                A contacter
               </button>
               <button
-                onClick={() => handleQuickAction('completed')}
-                disabled={status === 'completed'}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium"
+                onClick={() => handleQuickAction('qualified')}
+                disabled={status === 'qualified'}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                Marquer terminé
+                Qualifié
               </button>
             </div>
 
@@ -326,7 +326,7 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
                 className="px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:bg-gray-400 flex items-center gap-2"
               >
                 <Trash2 className="w-4 h-4" />
-                {deleting ? 'Archivage...' : 'Archiver'}
+                {deleting ? 'Traitement...' : 'Hors Critères'}
               </button>
             </div>
           </div>

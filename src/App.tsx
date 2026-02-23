@@ -26,9 +26,10 @@ function App() {
   const [airtablePartnerFilter, setAirtablePartnerFilter] = useState<string>('all');
   const [airtableStats, setAirtableStats] = useState({
     new: 0,
-    in_progress: 0,
-    contacted: 0,
-    completed: 0,
+    to_contact: 0,
+    qualified: 0,
+    out_of_criteria: 0,
+    to_relaunch: 0,
     total: 0,
   });
 
@@ -112,18 +113,20 @@ function App() {
     try {
       const stats = {
         new: 0,
-        in_progress: 0,
-        contacted: 0,
-        completed: 0,
+        to_contact: 0,
+        qualified: 0,
+        out_of_criteria: 0,
+        to_relaunch: 0,
         total: records.length,
       };
 
       records.forEach(record => {
         const status = (record.fields['Statut'] as string) || 'Nouveau';
         if (status === 'Nouveau') stats.new++;
-        else if (status === 'En cours') stats.in_progress++;
-        else if (status === 'Contacté') stats.contacted++;
-        else if (status === 'Terminé') stats.completed++;
+        else if (status === 'A contacter') stats.to_contact++;
+        else if (status === 'Qualifié') stats.qualified++;
+        else if (status === 'Hors Critères') stats.out_of_criteria++;
+        else if (status === 'A relancer') stats.to_relaunch++;
       });
 
       setAirtableStats(stats);
@@ -636,10 +639,10 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
                   >
                     <option value="all">Tous les statuts</option>
                     <option value="Nouveau">Nouveau</option>
-                    <option value="En cours">En cours</option>
-                    <option value="Contacté">Contacté</option>
-                    <option value="Terminé">Terminé</option>
-                    <option value="Archivé">Archivé</option>
+                    <option value="A contacter">A contacter</option>
+                    <option value="Qualifié">Qualifié</option>
+                    <option value="Hors Critères">Hors Critères</option>
+                    <option value="A relancer">A relancer</option>
                   </select>
                 </div>
                 <div>
@@ -750,10 +753,11 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
 
         {activeTab === 'airtable' && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
               <StatsCard title="Nouveaux" value={airtableStats.new} icon={Inbox} color="green" />
-              <StatsCard title="En cours" value={airtableStats.in_progress} icon={Clock} color="blue" />
-              <StatsCard title="Terminés" value={airtableStats.completed} icon={CheckCircle} color="gray" />
+              <StatsCard title="A contacter" value={airtableStats.to_contact} icon={Bell} color="blue" />
+              <StatsCard title="Qualifiés" value={airtableStats.qualified} icon={CheckCircle} color="green" />
+              <StatsCard title="Hors Critères" value={airtableStats.out_of_criteria} icon={Trash2} color="red" />
               <StatsCard title="Total" value={airtableStats.total} icon={Archive} color="yellow" />
             </div>
 
