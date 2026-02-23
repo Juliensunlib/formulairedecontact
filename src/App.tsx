@@ -316,7 +316,7 @@ function App() {
       const interval = setInterval(() => {
         fetchContacts();
         setLastUpdate(new Date());
-      }, 30000);
+      }, 300000);
 
       return () => {
         clearInterval(interval);
@@ -327,7 +327,7 @@ function App() {
       const interval = setInterval(() => {
         fetchAirtable();
         setLastUpdate(new Date());
-      }, 30000);
+      }, 300000);
 
       return () => {
         clearInterval(interval);
@@ -350,6 +350,12 @@ function App() {
       filtered = filtered.filter(c => c.requester_type === typeFilter);
     }
 
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.submitted_at).getTime();
+      const dateB = new Date(b.submitted_at).getTime();
+      return dateB - dateA;
+    });
+
     setFilteredContacts(filtered);
   }, [contacts, statusFilter, priorityFilter, typeFilter]);
 
@@ -359,6 +365,12 @@ function App() {
     if (airtableStatusFilter !== 'all') {
       filtered = filtered.filter(r => (r.fields['Statut'] as string) === airtableStatusFilter);
     }
+
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.createdTime).getTime();
+      const dateB = new Date(b.createdTime).getTime();
+      return dateB - dateA;
+    });
 
     setFilteredAirtableRecords(filtered);
   }, [airtableRecords, airtableStatusFilter]);

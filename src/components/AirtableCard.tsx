@@ -1,6 +1,7 @@
 import { AirtableRecord, mapStatusFromAirtable, mapPriorityFromAirtable } from '../lib/airtable';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
+import { User } from 'lucide-react';
 
 interface AirtableCardProps {
   record: AirtableRecord;
@@ -10,6 +11,8 @@ interface AirtableCardProps {
 export function AirtableCard({ record, onClick }: AirtableCardProps) {
   const status = mapStatusFromAirtable(record.fields['Statut'] as string);
   const priority = mapPriorityFromAirtable(record.fields['Priorité'] as string);
+  const assignedTo = record.fields['Assigné à'] as string;
+
   const formatValue = (value: any): string => {
     if (value === null || value === undefined) return '-';
     if (Array.isArray(value)) return value.join(', ');
@@ -18,7 +21,7 @@ export function AirtableCard({ record, onClick }: AirtableCardProps) {
     return String(value);
   };
 
-  const fields = Object.entries(record.fields);
+  const fields = Object.entries(record.fields).filter(([key]) => key !== 'Assigné à');
   const displayFields = fields.slice(0, 6);
 
   return (
@@ -32,6 +35,12 @@ export function AirtableCard({ record, onClick }: AirtableCardProps) {
           <PriorityBadge priority={priority} />
         </div>
       </div>
+      {assignedTo && (
+        <div className="flex items-center text-sm text-green-700 bg-green-50 px-3 py-1.5 rounded mb-3 w-fit">
+          <User className="w-4 h-4 mr-1.5" />
+          <span className="font-medium">{assignedTo}</span>
+        </div>
+      )}
       <div className="space-y-3">
         {displayFields.map(([key, value]) => (
           <div key={key} className="border-b border-gray-100 pb-2 last:border-0">

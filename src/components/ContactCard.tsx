@@ -27,6 +27,12 @@ export function ContactCard({ contact, onClick }: ContactCardProps) {
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <h3 className="font-semibold text-lg text-gray-900">{contact.name || 'Sans nom'}</h3>
+          {contact.assigned_to && (
+            <div className="flex items-center text-sm text-green-700 bg-green-50 px-2 py-1 rounded mt-2 w-fit">
+              <User className="w-4 h-4 mr-1.5" />
+              <span className="font-medium">{contact.assigned_to}</span>
+            </div>
+          )}
           {(contact as any).requester_type && (
             <div className="flex items-center text-xs text-gray-500 mt-1">
               <Users className="w-3.5 h-3.5 mr-1" />
@@ -87,12 +93,6 @@ export function ContactCard({ contact, onClick }: ContactCardProps) {
             <div className="flex items-center text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-200" title="Lié à Airtable">
               <Link2 className="w-3.5 h-3.5 mr-1" />
               {(contact as any).network_id}
-            </div>
-          )}
-          {contact.assigned_to && (
-            <div className="flex items-center text-xs text-green-700 bg-green-50 px-2 py-1 rounded">
-              <User className="w-3.5 h-3.5 mr-1" />
-              {contact.assigned_to}
             </div>
           )}
         </div>
