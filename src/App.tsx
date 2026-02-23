@@ -396,7 +396,13 @@ function App() {
     }
 
     if (airtableAssignedToFilter !== 'all') {
-      filtered = filtered.filter(r => (r.fields['Assigné à'] as string) === airtableAssignedToFilter);
+      filtered = filtered.filter(r => {
+        const rhField = r.fields['RH'];
+        if (Array.isArray(rhField) && rhField.length > 0) {
+          return rhField.includes(airtableAssignedToFilter);
+        }
+        return false;
+      });
     }
 
     if (airtablePartnerFilter !== 'all') {

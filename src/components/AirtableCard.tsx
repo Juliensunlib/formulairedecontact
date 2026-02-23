@@ -11,7 +11,8 @@ interface AirtableCardProps {
 export function AirtableCard({ record, onClick }: AirtableCardProps) {
   const status = mapStatusFromAirtable(record.fields['Statut'] as string);
   const priority = mapPriorityFromAirtable(record.fields['Priorité'] as string);
-  const assignedTo = record.fields['Assigné à'] as string;
+  const rhField = record.fields['RH'];
+  const assignedTo = Array.isArray(rhField) && rhField.length > 0 ? rhField.join(', ') : '';
   const partner = record.fields['Partenaire'] as string;
 
   const formatValue = (value: any): string => {
@@ -22,7 +23,7 @@ export function AirtableCard({ record, onClick }: AirtableCardProps) {
     return String(value);
   };
 
-  const fields = Object.entries(record.fields).filter(([key]) => key !== 'Assigné à' && key !== 'Partenaire');
+  const fields = Object.entries(record.fields).filter(([key]) => key !== 'RH' && key !== 'Partenaire');
   const displayFields = fields.slice(0, 6);
 
   return (
