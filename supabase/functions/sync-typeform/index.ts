@@ -68,29 +68,47 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const typeformUrl = `https://api.typeform.com/forms/${formId}/responses`;
-    const typeformResponse = await fetch(typeformUrl, {
-      headers: {
-        'Authorization': `Bearer ${typeformToken}`,
-      },
-    });
+    let allResponses: TypeformResponse[] = [];
+    let pageToken: string | undefined = undefined;
+    const pageSize = 1000;
 
-    if (!typeformResponse.ok) {
-      const errorText = await typeformResponse.text();
-      console.error('Typeform API error:', typeformResponse.status, errorText);
-      throw new Error(`Typeform API error (${typeformResponse.status}): ${typeformResponse.statusText}. Vérifiez que votre token et l'ID du formulaire sont corrects.`);
-    }
+    do {
+      const typeformUrl = new URL(`https://api.typeform.com/forms/${formId}/responses`);
+      typeformUrl.searchParams.set('page_size', pageSize.toString());
+      if (pageToken) {
+        typeformUrl.searchParams.set('before', pageToken);
+      }
 
-    const contentType = typeformResponse.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      const responseText = await typeformResponse.text();
-      console.error('Invalid response type:', contentType);
-      console.error('Response body:', responseText.substring(0, 500));
-      throw new Error(`L'API Typeform n'a pas retourné de JSON. Vérifiez que votre token a les permissions "Read responses" et que l'ID du formulaire (${formId}) est correct.`);
-    }
+      const typeformResponse = await fetch(typeformUrl.toString(), {
+        headers: {
+          'Authorization': `Bearer ${typeformToken}`,
+        },
+      });
 
-    const data = await typeformResponse.json();
-    const responses: TypeformResponse[] = data.items || [];
+      if (!typeformResponse.ok) {
+        const errorText = await typeformResponse.text();
+        console.error('Typeform API error:', typeformResponse.status, errorText);
+        throw new Error(`Typeform API error (${typeformResponse.status}): ${typeformResponse.statusText}. Vérifiez que votre token et l'ID du formulaire sont corrects.`);
+      }
+
+      const contentType = typeformResponse.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await typeformResponse.text();
+        console.error('Invalid response type:', contentType);
+        console.error('Response body:', responseText.substring(0, 500));
+        throw new Error(`L'API Typeform n'a pas retourné de JSON. Vérifiez que votre token a les permissions "Read responses" et que l'ID du formulaire (${formId}) est correct.`);
+      }
+
+      const data = await typeformResponse.json();
+      const items: TypeformResponse[] = data.items || [];
+
+      allResponses = allResponses.concat(items);
+
+      pageToken = data.page_count && items.length === pageSize ? items[items.length - 1]?.token : undefined;
+
+    } while (pageToken);
+
+    const responses = allResponses;
 
     const { data: metadata } = await supabase
       .from('typeform_metadata')
