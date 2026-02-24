@@ -185,6 +185,12 @@ Deno.serve(async (req: Request) => {
         success: true,
         data: enrichedResponses,
         total: enrichedResponses.length,
+        debug: {
+          totalPages: pageCount,
+          totalItemsInTypeform: totalItems,
+          responsesCollected: allResponses.length,
+          responsesEnriched: enrichedResponses.length,
+        },
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
