@@ -53,6 +53,7 @@ Deno.serve(async (req: Request) => {
     const url = new URL(req.url);
     const formId = url.searchParams.get('form_id');
     const typeformToken = req.headers.get('X-Typeform-Token');
+    const includeLogs = url.searchParams.get('logs') === 'true';
 
     if (!formId) {
       return new Response(
@@ -216,7 +217,7 @@ Deno.serve(async (req: Request) => {
         success: true,
         data: enrichedResponses,
         total: enrichedResponses.length,
-        logs: logs,
+        logs: includeLogs ? logs : [],
         errors: [],
       }),
       {
