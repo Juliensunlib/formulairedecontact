@@ -1,7 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
-const VERSION = '2.0.0';
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
@@ -39,15 +37,8 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const logs: string[] = [];
-    const logAndStore = (message: string) => {
-      console.log(message);
-      logs.push(message);
-    };
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const url = new URL(req.url);
@@ -66,9 +57,7 @@ Deno.serve(async (req: Request) => {
 
     if (!typeformToken) {
       return new Response(
-        JSON.stringify({
-          error: 'Typeform token is required in X-Typeform-Token header'
-        }),
+        JSON.stringify({ error: 'Typeform token is required in X-Typeform-Token header' }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -79,20 +68,13 @@ Deno.serve(async (req: Request) => {
     let allResponses: TypeformResponse[] = [];
     let afterToken: string | undefined = undefined;
     const pageSize = 1000;
-    let pageNumber = 1;
-
-    logAndStore(`🔍 [v${VERSION}] Début de la récupération des réponses Typeform pour le formulaire ${formId}`);
 
     do {
       const typeformUrl = new URL(`https://api.typeform.com/forms/${formId}/responses`);
       typeformUrl.searchParams.set('page_size', pageSize.toString());
-
       if (afterToken) {
         typeformUrl.searchParams.set('after', afterToken);
       }
-
-      logAndStore(`📄 Page ${pageNumber} - URL: ${typeformUrl.toString()}`);
-      logAndStore(`   Token after: ${afterToken || 'aucun (première page)'}`);
 
       const typeformResponse = await fetch(typeformUrl.toString(), {
         headers: {
@@ -101,54 +83,20 @@ Deno.serve(async (req: Request) => {
       });
 
       if (!typeformResponse.ok) {
-        const errorText = await typeformResponse.text();
-        logAndStore(`❌ Typeform API error: ${typeformResponse.status} ${errorText}`);
-        throw new Error(`Typeform API error (${typeformResponse.status}): ${typeformResponse.statusText}. Vérifiez que votre token et l'ID du formulaire sont corrects.`);
-      }
-
-      const contentType = typeformResponse.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const responseText = await typeformResponse.text();
-        logAndStore(`❌ Invalid response type: ${contentType}`);
-        throw new Error(`L'API Typeform n'a pas retourné de JSON. Vérifiez que votre token a les permissions "Read responses" et que l'ID du formulaire (${formId}) est correct.`);
+        throw new Error(`Typeform API error: ${typeformResponse.status}`);
       }
 
       const data = await typeformResponse.json();
       const items: TypeformResponse[] = data.items || [];
 
-      logAndStore(`✅ Page ${pageNumber} récupérée:`);
-      logAndStore(`   - Reçu: ${items.length} réponses`);
-      logAndStore(`   - total_items (API): ${data.total_items}`);
-      logAndStore(`   - page_count (API): ${data.page_count}`);
-
-      if (items.length === 0) {
-        logAndStore('⚠️  Aucune réponse reçue, arrêt de la pagination');
-        break;
-      }
+      if (items.length === 0) break;
 
       allResponses = allResponses.concat(items);
 
-      logAndStore(`   - Total accumulé: ${allResponses.length} / ${data.total_items || '?'} réponses`);
-
-      const lastToken = items[items.length - 1]?.token;
-      logAndStore(`   - Token de la dernière réponse: ${lastToken?.substring(0, 20)}...`);
-
       const hasMorePages = allResponses.length < (data.total_items || 0);
-      logAndStore(`   - Plus de pages? ${hasMorePages ? 'OUI' : 'NON'} (${allResponses.length} < ${data.total_items})`);
-
-      afterToken = hasMorePages && lastToken ? lastToken : undefined;
-      pageNumber++;
-
-      if (pageNumber > 100) {
-        logAndStore('⚠️  Limite de sécurité atteinte (100 pages)');
-        break;
-      }
+      afterToken = hasMorePages && items[items.length - 1]?.token ? items[items.length - 1].token : undefined;
 
     } while (afterToken);
-
-    logAndStore(`✨ Récupération terminée - Total: ${allResponses.length} réponses sur ${pageNumber - 1} page(s)`);
-
-    const responses = allResponses;
 
     const { data: metadata } = await supabase
       .from('typeform_metadata')
@@ -159,7 +107,7 @@ Deno.serve(async (req: Request) => {
       metadataMap.set(m.typeform_response_id, m);
     });
 
-    const enrichedResponses = responses.map(response => {
+    const enrichedResponses = allResponses.map(response => {
       const answersMap: Record<string, any> = {};
       response.answers.forEach(answer => {
         const key = answer.field.ref || answer.field.id;
@@ -175,7 +123,6 @@ Deno.serve(async (req: Request) => {
         priority: 'medium',
         notes: null,
         assigned_to: null,
-        partner: null,
       };
 
       const firstName = answersMap['976acafa-220b-444d-b598-92ab2d62ab56'] || '';
@@ -206,7 +153,7 @@ Deno.serve(async (req: Request) => {
         priority: meta.priority,
         notes: meta.notes,
         assigned_to: meta.assigned_to,
-        partner: meta.partner,
+        partner: meta.partner || null,
         raw_data: response,
       };
     });
@@ -216,8 +163,6 @@ Deno.serve(async (req: Request) => {
         success: true,
         data: enrichedResponses,
         total: enrichedResponses.length,
-        logs: logs,
-        errors: [],
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
