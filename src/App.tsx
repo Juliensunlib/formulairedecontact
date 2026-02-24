@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, Filter, Inbox, Clock, CheckCircle, Archive, Sun, Bell, Trash2, X, Database } from 'lucide-react';
+import { RefreshCw, Filter, Inbox, Clock, CheckCircle, Archive, Sun, Bell, Trash2, X, Database, Download } from 'lucide-react';
 import { ContactRequest } from './lib/supabase';
 import { AirtableRecord, fetchAirtableRecords, fetchRHCollaborators, RHCollaborator } from './lib/airtable';
+import { fetchTypeformResponsesFromSupabase, syncAllTypeformResponses } from './lib/typeform-supabase';
+import { mapTypeformResponseToContact } from './utils/typeform-mapper';
 import { ContactCard } from './components/ContactCard';
 import { ContactModal } from './components/ContactModal';
 import { AirtableCard } from './components/AirtableCard';
@@ -48,60 +50,41 @@ function App() {
   const [rhCollaborators, setRhCollaborators] = useState<RHCollaborator[]>([]);
 
   const fetchContacts = async () => {
-    if (!formId) {
-      setLoading(false);
-      return;
-    }
-
     try {
       setError('');
-      const typeformToken = import.meta.env.VITE_TYPEFORM_TOKEN;
+      setLoading(true);
 
-      if (!typeformToken) {
-        throw new Error('VITE_TYPEFORM_TOKEN manquant. Ajoutez-le dans le fichier .env ou copiez les variables depuis Vercel.');
-      }
+      const responses = await fetchTypeformResponsesFromSupabase();
+      const mappedContacts = responses.map(mapTypeformResponseToContact);
 
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-typeform?form_id=${formId}`;
-      console.log('Fetching:', url);
-      console.log('Token present:', !!typeformToken);
-
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'X-Typeform-Token': typeformToken,
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Response status:', response.status);
-        console.error('Response text:', errorText);
-        try {
-          const errorData = JSON.parse(errorText);
-          throw new Error(errorData.error || `HTTP ${response.status}: ${errorText}`);
-        } catch {
-          throw new Error(`HTTP ${response.status}: ${errorText || 'Failed to fetch'}`);
-        }
-      }
-
-      const result = await response.json();
-      console.log('📊 Résultat reçu:', result);
-
-      if (result.debug) {
-        console.log('🔍 Informations de debug:', result.debug);
-      }
-
-      if (result.logs && result.logs.length > 0) {
-        console.log('📋 Logs de la fonction Edge:');
-        result.logs.forEach((log: string) => console.log(log));
-      }
-
-      setContacts(result.data || []);
+      setContacts(mappedContacts);
+      console.log(`Chargé ${mappedContacts.length} réponses depuis Supabase`);
     } catch (error: any) {
       console.error('Error fetching contacts:', error);
       setError(error.message || 'Erreur de chargement');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSyncFromTypeform = async () => {
+    setSyncing(true);
+    try {
+      const result = await syncAllTypeformResponses();
+
+      if (result.success) {
+        alert(`✅ Synchronisation terminée!\n\n📥 ${result.total_fetched} réponses récupérées\n✓ ${result.inserted} nouvelles\n↻ ${result.updated} mises à jour\n${result.errors > 0 ? `❌ ${result.errors} erreurs` : ''}`);
+
+        await fetchContacts();
+        setLastUpdate(new Date());
+      } else {
+        throw new Error('La synchronisation a échoué');
+      }
+    } catch (error: any) {
+      console.error('Error syncing:', error);
+      alert(`❌ Erreur de synchronisation:\n\n${error.message}`);
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -342,7 +325,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'typeform' && formId) {
+    if (activeTab === 'typeform') {
       fetchContacts();
 
       const interval = setInterval(() => {
@@ -365,7 +348,7 @@ function App() {
         clearInterval(interval);
       };
     }
-  }, [activeTab, formId]);
+  }, [activeTab]);
 
   useEffect(() => {
     let filtered = [...contacts];
@@ -448,40 +431,6 @@ function App() {
     total: contacts.length,
   };
 
-  if (!formId && activeTab === 'typeform') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-xl p-8 max-w-md w-full">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-green-600 rounded-lg">
-              <Sun className="w-8 h-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">SunLib</h1>
-              <p className="text-gray-600 text-sm">Configuration requise</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <p className="text-sm text-yellow-800">
-                L'ID du formulaire Typeform n'est pas configuré. Veuillez l'ajouter dans le fichier <code className="bg-yellow-100 px-2 py-1 rounded">.env</code> :
-              </p>
-              <pre className="mt-2 bg-gray-800 text-green-400 p-3 rounded text-xs overflow-x-auto">
-VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
-              </pre>
-            </div>
-            <button
-              onClick={() => setActiveTab('airtable')}
-              className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
-            >
-              Voir les données Airtable
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-gray-50">
@@ -511,23 +460,34 @@ VITE_TYPEFORM_FORM_ID=VOTRE_ID_ICI
                 </div>
               )}
               {activeTab === 'typeform' && (
-                <button
-                  onClick={syncToAirtable}
-                  disabled={syncing || contacts.length === 0}
-                  className={`flex items-center gap-2 ${
-                    import.meta.env.VITE_AIRTABLE_TOKEN && import.meta.env.VITE_AIRTABLE_BASE_ID
-                      ? 'bg-blue-600 hover:bg-blue-700'
-                      : 'bg-orange-500 hover:bg-orange-600'
-                  } text-white px-6 py-3 rounded-lg transition-colors disabled:bg-gray-400 font-medium`}
-                  title={
-                    !(import.meta.env.VITE_AIRTABLE_TOKEN && import.meta.env.VITE_AIRTABLE_BASE_ID)
-                      ? 'Configuration Airtable manquante'
-                      : 'Synchroniser vers Airtable (préserve les statuts)'
-                  }
-                >
-                  <Database className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} />
-                  {syncing ? 'Synchronisation...' : 'Pousser vers Airtable'}
-                </button>
+                <>
+                  <button
+                    onClick={handleSyncFromTypeform}
+                    disabled={syncing}
+                    className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 font-medium"
+                    title="Synchroniser toutes les réponses depuis Typeform"
+                  >
+                    <Download className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} />
+                    {syncing ? 'Synchronisation...' : 'Sync Typeform'}
+                  </button>
+                  <button
+                    onClick={syncToAirtable}
+                    disabled={syncing || contacts.length === 0}
+                    className={`flex items-center gap-2 ${
+                      import.meta.env.VITE_AIRTABLE_TOKEN && import.meta.env.VITE_AIRTABLE_BASE_ID
+                        ? 'bg-blue-600 hover:bg-blue-700'
+                        : 'bg-orange-500 hover:bg-orange-600'
+                    } text-white px-6 py-3 rounded-lg transition-colors disabled:bg-gray-400 font-medium`}
+                    title={
+                      !(import.meta.env.VITE_AIRTABLE_TOKEN && import.meta.env.VITE_AIRTABLE_BASE_ID)
+                        ? 'Configuration Airtable manquante'
+                        : 'Synchroniser vers Airtable (préserve les statuts)'
+                    }
+                  >
+                    <Database className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} />
+                    {syncing ? 'Synchronisation...' : 'Pousser vers Airtable'}
+                  </button>
+                </>
               )}
               {activeTab === 'airtable' && (
                 <button

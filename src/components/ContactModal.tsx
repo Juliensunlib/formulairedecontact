@@ -1,9 +1,10 @@
 import { X, Mail, Phone, Building2, MessageSquare, Calendar, FileText, User, Trash2, CheckCircle2, MapPin, Users, Link2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { ContactRequest, supabase, upsertTypeformMetadata } from '../lib/supabase';
+import { ContactRequest, supabase } from '../lib/supabase';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
 import { syncStatusAndPriorityToAirtable, fetchRHCollaborators, RHCollaborator } from '../lib/airtable';
+import { updateTypeformResponseMetadata } from '../lib/typeform-supabase';
 
 interface ContactModalProps {
   contact: ContactRequest;
@@ -16,7 +17,7 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
   const [priority, setPriority] = useState(contact.priority);
   const [notes, setNotes] = useState(contact.notes || '');
   const [assignedTo, setAssignedTo] = useState(contact.assigned_to || '');
-  const [partner, setPartner] = useState('');
+  const [partner, setPartner] = useState(contact.partner || '');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [collaborators, setCollaborators] = useState<RHCollaborator[]>([]);
@@ -51,12 +52,12 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await upsertTypeformMetadata({
-        typeform_response_id: contact.typeform_response_id,
+      const responseId = contact.response_id || contact.typeform_response_id;
+
+      await updateTypeformResponseMetadata(responseId, {
         status,
         priority,
-        notes: notes || null,
-        assigned_to: assignedTo || null,
+        partner: partner || undefined,
       });
 
       if ((contact as any).network_id) {
@@ -82,12 +83,10 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
 
     setDeleting(true);
     try {
-      await upsertTypeformMetadata({
-        typeform_response_id: contact.typeform_response_id,
+      const responseId = contact.response_id || contact.typeform_response_id;
+
+      await updateTypeformResponseMetadata(responseId, {
         status: 'archived',
-        priority,
-        notes: notes || null,
-        assigned_to: assignedTo || null,
       });
 
       if ((contact as any).network_id) {

@@ -7,24 +7,35 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export interface ContactRequest {
   id: string;
+  response_id?: string;
   typeform_response_id: string;
   submitted_at: string;
   form_id: string;
   name: string;
+  nom?: string;
+  prenom?: string;
   email: string;
   phone?: string;
+  telephone?: string;
   company?: string;
+  entreprise?: string;
   message?: string;
+  besoin?: string;
+  secteur?: string;
   requester_type?: string;
   address?: string;
+  address_line2?: string;
   city?: string;
   postal_code?: string;
   department?: string;
   country?: string;
+  state_region?: string;
+  motif?: string;
   status: 'new' | 'in_progress' | 'contacted' | 'completed' | 'archived';
   priority: 'low' | 'medium' | 'high';
   notes?: string;
   assigned_to?: string;
+  partner?: string;
   raw_data: any;
 }
 
