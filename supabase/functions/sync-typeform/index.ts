@@ -69,7 +69,7 @@ Deno.serve(async (req: Request) => {
     }
 
     let allResponses: TypeformResponse[] = [];
-    let pageToken: string | undefined = undefined;
+    let afterToken: string | undefined = undefined;
     const pageSize = 1000;
     let pageNumber = 1;
 
@@ -78,12 +78,13 @@ Deno.serve(async (req: Request) => {
     do {
       const typeformUrl = new URL(`https://api.typeform.com/forms/${formId}/responses`);
       typeformUrl.searchParams.set('page_size', pageSize.toString());
-      if (pageToken) {
-        typeformUrl.searchParams.set('before', pageToken);
+
+      if (afterToken) {
+        typeformUrl.searchParams.set('after', afterToken);
       }
 
-      console.log(`📄 Page ${pageNumber} - URL: ${typeformUrl.toString()}`);
-      console.log(`   Token de pagination: ${pageToken || 'aucun (première page)'}`);
+      console.log(`📄 Page ${pageNumber} - URL complète: ${typeformUrl.toString()}`);
+      console.log(`   Token after: ${afterToken || 'aucun (première page)'}`);
 
       const typeformResponse = await fetch(typeformUrl.toString(), {
         headers: {
@@ -93,14 +94,14 @@ Deno.serve(async (req: Request) => {
 
       if (!typeformResponse.ok) {
         const errorText = await typeformResponse.text();
-        console.error('Typeform API error:', typeformResponse.status, errorText);
+        console.error('❌ Typeform API error:', typeformResponse.status, errorText);
         throw new Error(`Typeform API error (${typeformResponse.status}): ${typeformResponse.statusText}. Vérifiez que votre token et l'ID du formulaire sont corrects.`);
       }
 
       const contentType = typeformResponse.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         const responseText = await typeformResponse.text();
-        console.error('Invalid response type:', contentType);
+        console.error('❌ Invalid response type:', contentType);
         console.error('Response body:', responseText.substring(0, 500));
         throw new Error(`L'API Typeform n'a pas retourné de JSON. Vérifiez que votre token a les permissions "Read responses" et que l'ID du formulaire (${formId}) est correct.`);
       }
@@ -108,22 +109,35 @@ Deno.serve(async (req: Request) => {
       const data = await typeformResponse.json();
       const items: TypeformResponse[] = data.items || [];
 
-      console.log(`✅ Page ${pageNumber} - Reçu ${items.length} réponses (total_items API: ${data.total_items}, page_count API: ${data.page_count})`);
+      console.log(`✅ Page ${pageNumber} récupérée:`);
+      console.log(`   - Reçu: ${items.length} réponses`);
+      console.log(`   - total_items (API): ${data.total_items}`);
+      console.log(`   - page_count (API): ${data.page_count}`);
+
+      if (items.length === 0) {
+        console.log('⚠️  Aucune réponse reçue, arrêt de la pagination');
+        break;
+      }
 
       allResponses = allResponses.concat(items);
 
-      console.log(`   Total accumulé: ${allResponses.length} réponses`);
+      console.log(`   - Total accumulé: ${allResponses.length} / ${data.total_items || '?'} réponses`);
 
-      const hasMorePages = items.length === pageSize;
-      const lastToken = items.length > 0 ? items[items.length - 1]?.token : undefined;
+      const lastToken = items[items.length - 1]?.token;
+      console.log(`   - Token de la dernière réponse: ${lastToken?.substring(0, 20)}...`);
 
-      console.log(`   Dernière réponse token: ${lastToken}`);
-      console.log(`   Plus de pages? ${hasMorePages ? 'OUI' : 'NON'} (${items.length} === ${pageSize})`);
+      const hasMorePages = allResponses.length < (data.total_items || 0);
+      console.log(`   - Plus de pages? ${hasMorePages ? 'OUI' : 'NON'} (${allResponses.length} < ${data.total_items})`);
 
-      pageToken = hasMorePages ? lastToken : undefined;
+      afterToken = hasMorePages && lastToken ? lastToken : undefined;
       pageNumber++;
 
-    } while (pageToken);
+      if (pageNumber > 100) {
+        console.log('⚠️  Limite de sécurité atteinte (100 pages)');
+        break;
+      }
+
+    } while (afterToken);
 
     console.log(`✨ Récupération terminée - Total: ${allResponses.length} réponses sur ${pageNumber - 1} page(s)`);
 
