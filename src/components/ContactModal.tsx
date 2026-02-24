@@ -57,7 +57,6 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
         priority,
         notes: notes || null,
         assigned_to: assignedTo || null,
-        partner: partner || null,
       });
 
       if ((contact as any).network_id) {
@@ -89,7 +88,6 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
         priority,
         notes: notes || null,
         assigned_to: assignedTo || null,
-        partner: partner || null,
       });
 
       if ((contact as any).network_id) {
@@ -118,7 +116,6 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
         priority,
         notes: notes || null,
         assigned_to: assignedTo || null,
-        partner: partner || null,
       });
 
       if ((contact as any).network_id) {

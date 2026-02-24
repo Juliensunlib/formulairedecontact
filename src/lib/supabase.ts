@@ -25,7 +25,6 @@ export interface ContactRequest {
   priority: 'low' | 'medium' | 'high';
   notes?: string;
   assigned_to?: string;
-  partner?: string;
   raw_data: any;
 }
 
@@ -35,7 +34,6 @@ export interface TypeformMetadata {
   priority: 'low' | 'medium' | 'high';
   notes?: string;
   assigned_to?: string;
-  partner?: string;
   created_at: string;
   updated_at: string;
 }
@@ -46,7 +44,6 @@ export async function upsertTypeformMetadata(data: {
   priority: string;
   notes?: string | null;
   assigned_to?: string | null;
-  partner?: string | null;
 }) {
   const { data: existing } = await supabase
     .from('typeform_metadata')
@@ -62,7 +59,6 @@ export async function upsertTypeformMetadata(data: {
         priority: data.priority,
         notes: data.notes,
         assigned_to: data.assigned_to,
-        partner: data.partner,
         updated_at: new Date().toISOString(),
       })
       .eq('typeform_response_id', data.typeform_response_id);
@@ -77,7 +73,6 @@ export async function upsertTypeformMetadata(data: {
         priority: data.priority,
         notes: data.notes,
         assigned_to: data.assigned_to,
-        partner: data.partner,
       });
 
     if (insertError) throw insertError;
