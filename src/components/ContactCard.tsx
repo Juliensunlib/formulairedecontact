@@ -34,12 +34,6 @@ export function ContactCard({ contact, onClick }: ContactCardProps) {
                 <span className="font-medium">{contact.assigned_to}</span>
               </div>
             )}
-            {contact.partner && (
-              <div className="flex items-center text-sm text-blue-700 bg-blue-50 px-2 py-1 rounded w-fit">
-                <Building2 className="w-4 h-4 mr-1.5" />
-                <span className="font-medium">{contact.partner}</span>
-              </div>
-            )}
           </div>
           {(contact as any).requester_type && (
             <div className="flex items-center text-xs text-gray-500 mt-1">
