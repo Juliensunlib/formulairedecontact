@@ -48,52 +48,38 @@ export async function upsertTypeformMetadata(data: {
   assigned_to?: string | null;
   partner?: string | null;
 }) {
-  const { data: result, error } = await supabase.rpc('upsert_typeform_metadata', {
-    p_typeform_response_id: data.typeform_response_id,
-    p_status: data.status,
-    p_priority: data.priority,
-    p_notes: data.notes,
-    p_assigned_to: data.assigned_to,
-    p_partner: data.partner,
-  });
+  const { data: existing } = await supabase
+    .from('typeform_metadata')
+    .select('typeform_response_id')
+    .eq('typeform_response_id', data.typeform_response_id)
+    .maybeSingle();
 
-  if (error) {
-    console.error('RPC upsert failed, trying direct insert/update...', error);
-
-    const { data: existing } = await supabase
+  if (existing) {
+    const { error: updateError } = await supabase
       .from('typeform_metadata')
-      .select('typeform_response_id')
-      .eq('typeform_response_id', data.typeform_response_id)
-      .maybeSingle();
+      .update({
+        status: data.status,
+        priority: data.priority,
+        notes: data.notes,
+        assigned_to: data.assigned_to,
+        partner: data.partner,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('typeform_response_id', data.typeform_response_id);
 
-    if (existing) {
-      const { error: updateError } = await supabase
-        .from('typeform_metadata')
-        .update({
-          status: data.status,
-          priority: data.priority,
-          notes: data.notes,
-          assigned_to: data.assigned_to,
-          partner: data.partner,
-        })
-        .eq('typeform_response_id', data.typeform_response_id);
+    if (updateError) throw updateError;
+  } else {
+    const { error: insertError } = await supabase
+      .from('typeform_metadata')
+      .insert({
+        typeform_response_id: data.typeform_response_id,
+        status: data.status,
+        priority: data.priority,
+        notes: data.notes,
+        assigned_to: data.assigned_to,
+        partner: data.partner,
+      });
 
-      if (updateError) throw updateError;
-    } else {
-      const { error: insertError } = await supabase
-        .from('typeform_metadata')
-        .insert({
-          typeform_response_id: data.typeform_response_id,
-          status: data.status,
-          priority: data.priority,
-          notes: data.notes,
-          assigned_to: data.assigned_to,
-          partner: data.partner,
-        });
-
-      if (insertError) throw insertError;
-    }
+    if (insertError) throw insertError;
   }
-
-  return result;
 }
