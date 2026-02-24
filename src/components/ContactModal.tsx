@@ -1,9 +1,9 @@
 import { X, Mail, Phone, Building2, MessageSquare, Calendar, FileText, User, Trash2, CheckCircle2, MapPin, Users, Link2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { ContactRequest, fetchCollaborators, Collaborator } from '../lib/supabase';
+import { ContactRequest } from '../lib/supabase';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
-import { syncStatusAndPriorityToAirtable } from '../lib/airtable';
+import { syncStatusAndPriorityToAirtable, fetchRHCollaborators, RHCollaborator } from '../lib/airtable';
 import { updateTypeformResponseMetadata } from '../lib/typeform-supabase';
 
 interface ContactModalProps {
@@ -20,17 +20,17 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
   const [partner, setPartner] = useState(contact.partner || '');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+  const [collaborators, setCollaborators] = useState<RHCollaborator[]>([]);
   const [loadingCollaborators, setLoadingCollaborators] = useState(false);
 
   useEffect(() => {
     const loadCollaborators = async () => {
       setLoadingCollaborators(true);
       try {
-        const supabaseCollaborators = await fetchCollaborators();
-        setCollaborators(supabaseCollaborators);
+        const rhCollaborators = await fetchRHCollaborators();
+        setCollaborators(rhCollaborators);
       } catch (error) {
-        console.error('Erreur chargement collaborateurs:', error);
+        console.error('Erreur chargement collaborateurs RH:', error);
       } finally {
         setLoadingCollaborators(false);
       }
