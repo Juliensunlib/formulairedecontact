@@ -68,6 +68,7 @@ Deno.serve(async (req: Request) => {
     let allResponses: TypeformResponse[] = [];
     let afterToken: string | undefined = undefined;
     const pageSize = 1000;
+    let totalItems = 0;
 
     do {
       const typeformUrl = new URL(`https://api.typeform.com/forms/${formId}/responses`);
@@ -88,15 +89,19 @@ Deno.serve(async (req: Request) => {
 
       const data = await typeformResponse.json();
       const items: TypeformResponse[] = data.items || [];
+      totalItems = data.total_items || 0;
 
       if (items.length === 0) break;
 
       allResponses = allResponses.concat(items);
 
-      const hasMorePages = allResponses.length < (data.total_items || 0);
-      afterToken = hasMorePages && items[items.length - 1]?.token ? items[items.length - 1].token : undefined;
+      if (items.length < pageSize) {
+        break;
+      }
 
-    } while (afterToken);
+      afterToken = items[items.length - 1]?.token;
+
+    } while (afterToken && allResponses.length < totalItems);
 
     const { data: metadata } = await supabase
       .from('typeform_metadata')
