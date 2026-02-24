@@ -24,6 +24,7 @@ export function mapTypeformResponseToContact(response: TypeformResponse): Contac
     status: response.status as 'new' | 'in_progress' | 'contacted' | 'completed' | 'archived',
     priority: response.priority as 'low' | 'medium' | 'high',
     partner: response.partner || undefined,
+    assigned_to: response.assigned_to || undefined,
     raw_data: response.raw_data,
   };
 }

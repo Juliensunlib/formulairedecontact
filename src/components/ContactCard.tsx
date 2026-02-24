@@ -27,24 +27,32 @@ export function ContactCard({ contact, onClick }: ContactCardProps) {
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <h3 className="font-semibold text-lg text-gray-900">{contact.name || 'Sans nom'}</h3>
+
+          {contact.company && (
+            <div className="flex items-center text-sm font-medium text-gray-700 mt-1.5">
+              <Building2 className="w-4 h-4 mr-1.5 text-gray-500" />
+              {contact.company}
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2 mt-2">
-            {contact.assigned_to && (
-              <div className="flex items-center text-sm text-green-700 bg-green-50 px-2 py-1 rounded w-fit">
+            {contact.assigned_to ? (
+              <div className="flex items-center text-sm text-green-700 bg-green-50 px-2.5 py-1 rounded-md border border-green-200">
                 <User className="w-4 h-4 mr-1.5" />
                 <span className="font-medium">{contact.assigned_to}</span>
               </div>
+            ) : (
+              <div className="flex items-center text-sm text-gray-500 bg-gray-50 px-2.5 py-1 rounded-md border border-gray-200">
+                <User className="w-4 h-4 mr-1.5" />
+                <span>Non assigné</span>
+              </div>
             )}
           </div>
+
           {(contact as any).requester_type && (
             <div className="flex items-center text-xs text-gray-500 mt-1">
               <Users className="w-3.5 h-3.5 mr-1" />
               {(contact as any).requester_type}
-            </div>
-          )}
-          {contact.company && (
-            <div className="flex items-center text-sm text-gray-600 mt-1">
-              <Building2 className="w-4 h-4 mr-1" />
-              {contact.company}
             </div>
           )}
         </div>

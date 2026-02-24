@@ -58,6 +58,7 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
         status,
         priority,
         partner: partner || undefined,
+        assigned_to: assignedTo || undefined,
       });
 
       if ((contact as any).network_id) {
@@ -109,12 +110,12 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
 
   const handleQuickAction = async (newStatus: string) => {
     try {
-      await upsertTypeformMetadata({
-        typeform_response_id: contact.typeform_response_id,
+      const responseId = contact.response_id || contact.typeform_response_id;
+
+      await updateTypeformResponseMetadata(responseId, {
         status: newStatus,
         priority,
-        notes: notes || null,
-        assigned_to: assignedTo || null,
+        assigned_to: assignedTo || undefined,
       });
 
       if ((contact as any).network_id) {

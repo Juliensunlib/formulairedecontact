@@ -17,6 +17,7 @@ export interface TypeformResponse {
   priority: string;
   status: string;
   partner: string | null;
+  assigned_to: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -40,6 +41,7 @@ export async function updateTypeformResponseMetadata(
     status?: string;
     priority?: string;
     partner?: string;
+    assigned_to?: string;
   }
 ): Promise<void> {
   const { error } = await supabase
