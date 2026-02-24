@@ -104,7 +104,9 @@ Deno.serve(async (req: Request) => {
 
       allResponses = allResponses.concat(items);
 
-      pageToken = data.page_count && items.length === pageSize ? items[items.length - 1]?.token : undefined;
+      console.log(`Récupéré ${items.length} réponses, total: ${allResponses.length}`);
+
+      pageToken = items.length === pageSize ? items[items.length - 1]?.token : undefined;
 
     } while (pageToken);
 
