@@ -71,6 +71,9 @@ Deno.serve(async (req: Request) => {
     let allResponses: TypeformResponse[] = [];
     let pageToken: string | undefined = undefined;
     const pageSize = 1000;
+    let pageNumber = 1;
+
+    console.log(`🔍 Début de la récupération des réponses Typeform pour le formulaire ${formId}`);
 
     do {
       const typeformUrl = new URL(`https://api.typeform.com/forms/${formId}/responses`);
@@ -78,6 +81,9 @@ Deno.serve(async (req: Request) => {
       if (pageToken) {
         typeformUrl.searchParams.set('before', pageToken);
       }
+
+      console.log(`📄 Page ${pageNumber} - URL: ${typeformUrl.toString()}`);
+      console.log(`   Token de pagination: ${pageToken || 'aucun (première page)'}`);
 
       const typeformResponse = await fetch(typeformUrl.toString(), {
         headers: {
@@ -102,13 +108,24 @@ Deno.serve(async (req: Request) => {
       const data = await typeformResponse.json();
       const items: TypeformResponse[] = data.items || [];
 
+      console.log(`✅ Page ${pageNumber} - Reçu ${items.length} réponses (total_items API: ${data.total_items}, page_count API: ${data.page_count})`);
+
       allResponses = allResponses.concat(items);
 
-      console.log(`Récupéré ${items.length} réponses, total: ${allResponses.length}`);
+      console.log(`   Total accumulé: ${allResponses.length} réponses`);
 
-      pageToken = items.length === pageSize ? items[items.length - 1]?.token : undefined;
+      const hasMorePages = items.length === pageSize;
+      const lastToken = items.length > 0 ? items[items.length - 1]?.token : undefined;
+
+      console.log(`   Dernière réponse token: ${lastToken}`);
+      console.log(`   Plus de pages? ${hasMorePages ? 'OUI' : 'NON'} (${items.length} === ${pageSize})`);
+
+      pageToken = hasMorePages ? lastToken : undefined;
+      pageNumber++;
 
     } while (pageToken);
+
+    console.log(`✨ Récupération terminée - Total: ${allResponses.length} réponses sur ${pageNumber - 1} page(s)`);
 
     const responses = allResponses;
 
