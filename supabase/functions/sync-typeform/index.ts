@@ -1,5 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
+const VERSION = '2.0.0';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
@@ -79,7 +81,7 @@ Deno.serve(async (req: Request) => {
     const pageSize = 1000;
     let pageNumber = 1;
 
-    logAndStore(`🔍 Début de la récupération des réponses Typeform pour le formulaire ${formId}`);
+    logAndStore(`🔍 [v${VERSION}] Début de la récupération des réponses Typeform pour le formulaire ${formId}`);
 
     do {
       const typeformUrl = new URL(`https://api.typeform.com/forms/${formId}/responses`);
