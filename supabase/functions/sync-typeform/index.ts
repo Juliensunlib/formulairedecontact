@@ -113,6 +113,12 @@ Deno.serve(async (req: Request) => {
       console.log(`   - Reçu: ${items.length} réponses`);
       console.log(`   - total_items (API): ${data.total_items}`);
       console.log(`   - page_count (API): ${data.page_count}`);
+      console.log(`   - Réponse complète API:`, JSON.stringify({
+        total_items: data.total_items,
+        page_count: data.page_count,
+        items_count: items.length,
+        has_items: items.length > 0
+      }));
 
       if (items.length === 0) {
         console.log('⚠️  Aucune réponse reçue, arrêt de la pagination');
