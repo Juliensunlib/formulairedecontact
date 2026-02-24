@@ -85,11 +85,11 @@ function App() {
       }
 
       const result = await response.json();
-      console.log('📊 Résultat reçu:', {
-        nombre_de_contacts: result.data?.length || 0,
-        logs: result.logs || [],
-        errors: result.errors || []
-      });
+      console.log('📊 Résultat reçu:', result);
+
+      if (result.debug) {
+        console.log('🔍 Informations de debug:', result.debug);
+      }
 
       if (result.logs && result.logs.length > 0) {
         console.log('📋 Logs de la fonction Edge:');
