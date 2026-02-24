@@ -161,6 +161,12 @@ Deno.serve(async (req: Request) => {
           status: "new",
         };
 
+        const { data: existing } = await supabase
+          .from("typeform_responses")
+          .select("id")
+          .eq("response_id", response.response_id)
+          .maybeSingle();
+
         const { error: upsertError } = await supabase
           .from("typeform_responses")
           .upsert(responseData, {
@@ -175,12 +181,6 @@ Deno.serve(async (req: Request) => {
           );
           errors++;
         } else {
-          const { data: existing } = await supabase
-            .from("typeform_responses")
-            .select("id")
-            .eq("response_id", response.response_id)
-            .maybeSingle();
-
           if (existing) {
             updated++;
           } else {
