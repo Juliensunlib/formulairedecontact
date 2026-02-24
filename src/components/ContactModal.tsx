@@ -1,6 +1,6 @@
 import { X, Mail, Phone, Building2, MessageSquare, Calendar, FileText, User, Trash2, CheckCircle2, MapPin, Users, Link2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { ContactRequest, supabase } from '../lib/supabase';
+import { ContactRequest, supabase, upsertTypeformMetadata } from '../lib/supabase';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
 import { syncStatusAndPriorityToAirtable, fetchRHCollaborators, RHCollaborator } from '../lib/airtable';
@@ -51,16 +51,14 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase.rpc('upsert_typeform_metadata', {
-        p_typeform_response_id: contact.typeform_response_id,
-        p_status: status,
-        p_priority: priority,
-        p_notes: notes || null,
-        p_assigned_to: assignedTo || null,
-        p_partner: partner || null,
+      await upsertTypeformMetadata({
+        typeform_response_id: contact.typeform_response_id,
+        status,
+        priority,
+        notes: notes || null,
+        assigned_to: assignedTo || null,
+        partner: partner || null,
       });
-
-      if (error) throw error;
 
       if ((contact as any).network_id) {
         try {
@@ -85,16 +83,14 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
 
     setDeleting(true);
     try {
-      const { error } = await supabase.rpc('upsert_typeform_metadata', {
-        p_typeform_response_id: contact.typeform_response_id,
-        p_status: 'archived',
-        p_priority: priority,
-        p_notes: notes || null,
-        p_assigned_to: assignedTo || null,
-        p_partner: partner || null,
+      await upsertTypeformMetadata({
+        typeform_response_id: contact.typeform_response_id,
+        status: 'archived',
+        priority,
+        notes: notes || null,
+        assigned_to: assignedTo || null,
+        partner: partner || null,
       });
-
-      if (error) throw error;
 
       if ((contact as any).network_id) {
         try {
@@ -116,16 +112,14 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
 
   const handleQuickAction = async (newStatus: string) => {
     try {
-      const { error } = await supabase.rpc('upsert_typeform_metadata', {
-        p_typeform_response_id: contact.typeform_response_id,
-        p_status: newStatus,
-        p_priority: priority,
-        p_notes: notes || null,
-        p_assigned_to: assignedTo || null,
-        p_partner: partner || null,
+      await upsertTypeformMetadata({
+        typeform_response_id: contact.typeform_response_id,
+        status: newStatus,
+        priority,
+        notes: notes || null,
+        assigned_to: assignedTo || null,
+        partner: partner || null,
       });
-
-      if (error) throw error;
 
       if ((contact as any).network_id) {
         try {
