@@ -61,7 +61,7 @@ function App() {
         throw new Error('VITE_TYPEFORM_TOKEN manquant. Ajoutez-le dans le fichier .env ou copiez les variables depuis Vercel.');
       }
 
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-typeform?form_id=${formId}`;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-typeform-v2?form_id=${formId}`;
       console.log('Fetching:', url);
       console.log('Token present:', !!typeformToken);
 
