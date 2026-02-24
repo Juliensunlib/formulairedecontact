@@ -80,6 +80,7 @@ Deno.serve(async (req: Request) => {
     let afterToken: string | undefined = undefined;
     const pageSize = 1000;
     let pageNumber = 1;
+    let totalItemsExpected = 0;
 
     logAndStore(`🔍 [v${VERSION}] Début de la récupération des réponses Typeform pour le formulaire ${formId}`);
 
@@ -91,8 +92,9 @@ Deno.serve(async (req: Request) => {
         typeformUrl.searchParams.set('after', afterToken);
       }
 
-      logAndStore(`📄 Page ${pageNumber} - URL: ${typeformUrl.toString()}`);
-      logAndStore(`   Token after: ${afterToken || 'aucun (première page)'}`);
+      logAndStore(`📄 Page ${pageNumber}`);
+      logAndStore(`   URL: ${typeformUrl.toString()}`);
+      logAndStore(`   Token "after": ${afterToken ? `${afterToken.substring(0, 30)}...` : 'aucun (première page)'}`);
 
       const typeformResponse = await fetch(typeformUrl.toString(), {
         headers: {
@@ -116,37 +118,53 @@ Deno.serve(async (req: Request) => {
       const data = await typeformResponse.json();
       const items: TypeformResponse[] = data.items || [];
 
+      if (pageNumber === 1) {
+        totalItemsExpected = data.total_items || 0;
+        logAndStore(`📊 Total de réponses annoncé par l'API: ${totalItemsExpected}`);
+      }
+
       logAndStore(`✅ Page ${pageNumber} récupérée:`);
-      logAndStore(`   - Reçu: ${items.length} réponses`);
-      logAndStore(`   - total_items (API): ${data.total_items}`);
-      logAndStore(`   - page_count (API): ${data.page_count}`);
+      logAndStore(`   - Reçu: ${items.length} réponses sur cette page`);
+      logAndStore(`   - Total accumulé: ${allResponses.length + items.length} / ${totalItemsExpected} réponses`);
 
       if (items.length === 0) {
-        logAndStore('⚠️  Aucune réponse reçue, arrêt de la pagination');
+        logAndStore('⚠️  Aucune réponse reçue sur cette page, arrêt de la pagination');
         break;
       }
 
       allResponses = allResponses.concat(items);
 
-      logAndStore(`   - Total accumulé: ${allResponses.length} / ${data.total_items || '?'} réponses`);
+      if (items.length < pageSize) {
+        logAndStore(`✅ Dernière page atteinte (${items.length} < ${pageSize})`);
+        afterToken = undefined;
+      } else {
+        const lastItem = items[items.length - 1];
+        afterToken = lastItem?.token;
+        logAndStore(`   - Token de la dernière réponse de cette page: ${afterToken ? `${afterToken.substring(0, 30)}...` : 'AUCUN'}`);
 
-      const lastToken = items[items.length - 1]?.token;
-      logAndStore(`   - Token de la dernière réponse: ${lastToken?.substring(0, 20)}...`);
+        if (!afterToken) {
+          logAndStore('⚠️  Pas de token pour la prochaine page, arrêt de la pagination');
+          break;
+        }
+      }
 
-      const hasMorePages = allResponses.length < (data.total_items || 0);
-      logAndStore(`   - Plus de pages? ${hasMorePages ? 'OUI' : 'NON'} (${allResponses.length} < ${data.total_items})`);
-
-      afterToken = hasMorePages && lastToken ? lastToken : undefined;
       pageNumber++;
 
       if (pageNumber > 100) {
-        logAndStore('⚠️  Limite de sécurité atteinte (100 pages)');
+        logAndStore('⚠️  Limite de sécurité atteinte (100 pages = 100,000 réponses max)');
         break;
       }
 
     } while (afterToken);
 
-    logAndStore(`✨ Récupération terminée - Total: ${allResponses.length} réponses sur ${pageNumber - 1} page(s)`);
+    logAndStore(`✨ Récupération terminée:`);
+    logAndStore(`   - Total récupéré: ${allResponses.length} réponses`);
+    logAndStore(`   - Total attendu: ${totalItemsExpected} réponses`);
+    logAndStore(`   - Pages parcourues: ${pageNumber - 1}`);
+
+    if (allResponses.length !== totalItemsExpected) {
+      logAndStore(`⚠️  ATTENTION: Différence entre le total récupéré (${allResponses.length}) et le total attendu (${totalItemsExpected})`);
+    }
 
     const responses = allResponses;
 
