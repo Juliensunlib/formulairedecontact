@@ -89,3 +89,25 @@ export async function upsertTypeformMetadata(data: {
     if (insertError) throw insertError;
   }
 }
+
+export interface Collaborator {
+  id: string;
+  name: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchCollaborators(): Promise<Collaborator[]> {
+  const { data, error } = await supabase
+    .from('collaborators')
+    .select('*')
+    .eq('active', true)
+    .order('name', { ascending: true });
+
+  if (error) {
+    throw new Error(`Erreur lors du chargement des collaborateurs: ${error.message}`);
+  }
+
+  return data || [];
+}

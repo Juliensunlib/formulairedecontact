@@ -1,9 +1,9 @@
 import { X, Mail, Phone, Building2, MessageSquare, Calendar, FileText, User, Trash2, CheckCircle2, MapPin, Users, Link2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { ContactRequest, supabase } from '../lib/supabase';
+import { ContactRequest, fetchCollaborators, Collaborator } from '../lib/supabase';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
-import { syncStatusAndPriorityToAirtable, fetchRHCollaborators, RHCollaborator } from '../lib/airtable';
+import { syncStatusAndPriorityToAirtable } from '../lib/airtable';
 import { updateTypeformResponseMetadata } from '../lib/typeform-supabase';
 
 interface ContactModalProps {
@@ -20,15 +20,15 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
   const [partner, setPartner] = useState(contact.partner || '');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [collaborators, setCollaborators] = useState<RHCollaborator[]>([]);
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [loadingCollaborators, setLoadingCollaborators] = useState(false);
 
   useEffect(() => {
     const loadCollaborators = async () => {
       setLoadingCollaborators(true);
       try {
-        const rhCollaborators = await fetchRHCollaborators();
-        setCollaborators(rhCollaborators);
+        const supabaseCollaborators = await fetchCollaborators();
+        setCollaborators(supabaseCollaborators);
       } catch (error) {
         console.error('Erreur chargement collaborateurs:', error);
       } finally {
@@ -261,29 +261,45 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <User className="w-4 h-4 inline mr-1" />
-              Assigné à
-            </label>
-            {loadingCollaborators ? (
-              <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
-                Chargement...
-              </div>
-            ) : (
-              <select
-                value={assignedTo}
-                onChange={(e) => setAssignedTo(e.target.value)}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <User className="w-4 h-4 inline mr-1" />
+                Assigné à
+              </label>
+              {loadingCollaborators ? (
+                <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
+                  Chargement...
+                </div>
+              ) : (
+                <select
+                  value={assignedTo}
+                  onChange={(e) => setAssignedTo(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                >
+                  <option value="">Non assigné</option>
+                  {collaborators.map((collab) => (
+                    <option key={collab.id} value={collab.name}>
+                      {collab.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Users className="w-4 h-4 inline mr-1" />
+                Partenaire
+              </label>
+              <input
+                type="text"
+                value={partner}
+                onChange={(e) => setPartner(e.target.value)}
+                placeholder="Nom du partenaire..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-              >
-                <option value="">Non assigné</option>
-                {collaborators.map((collab) => (
-                  <option key={collab.id} value={collab.name}>
-                    {collab.name}
-                  </option>
-                ))}
-              </select>
-            )}
+              />
+            </div>
           </div>
 
           <div>
