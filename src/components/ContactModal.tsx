@@ -51,39 +51,16 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { data: existing } = await supabase
-        .from('typeform_metadata')
-        .select('typeform_response_id')
-        .eq('typeform_response_id', contact.typeform_response_id)
-        .maybeSingle();
+      const { error } = await supabase.rpc('upsert_typeform_metadata', {
+        p_typeform_response_id: contact.typeform_response_id,
+        p_status: status,
+        p_priority: priority,
+        p_notes: notes || null,
+        p_assigned_to: assignedTo || null,
+        p_partner: partner || null,
+      });
 
-      if (existing) {
-        const { error } = await supabase
-          .from('typeform_metadata')
-          .update({
-            status,
-            priority,
-            notes: notes || null,
-            assigned_to: assignedTo || null,
-            partner: partner || null,
-          })
-          .eq('typeform_response_id', contact.typeform_response_id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('typeform_metadata')
-          .insert({
-            typeform_response_id: contact.typeform_response_id,
-            status,
-            priority,
-            notes: notes || null,
-            assigned_to: assignedTo || null,
-            partner: partner || null,
-          });
-
-        if (error) throw error;
-      }
+      if (error) throw error;
 
       if ((contact as any).network_id) {
         try {
@@ -108,30 +85,16 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
 
     setDeleting(true);
     try {
-      const { data: existing } = await supabase
-        .from('typeform_metadata')
-        .select('typeform_response_id')
-        .eq('typeform_response_id', contact.typeform_response_id)
-        .maybeSingle();
+      const { error } = await supabase.rpc('upsert_typeform_metadata', {
+        p_typeform_response_id: contact.typeform_response_id,
+        p_status: 'archived',
+        p_priority: priority,
+        p_notes: notes || null,
+        p_assigned_to: assignedTo || null,
+        p_partner: partner || null,
+      });
 
-      if (existing) {
-        const { error } = await supabase
-          .from('typeform_metadata')
-          .update({ status: 'archived' })
-          .eq('typeform_response_id', contact.typeform_response_id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('typeform_metadata')
-          .insert({
-            typeform_response_id: contact.typeform_response_id,
-            status: 'archived',
-            priority: 'medium',
-          });
-
-        if (error) throw error;
-      }
+      if (error) throw error;
 
       if ((contact as any).network_id) {
         try {
@@ -153,30 +116,16 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
 
   const handleQuickAction = async (newStatus: string) => {
     try {
-      const { data: existing } = await supabase
-        .from('typeform_metadata')
-        .select('typeform_response_id')
-        .eq('typeform_response_id', contact.typeform_response_id)
-        .maybeSingle();
+      const { error } = await supabase.rpc('upsert_typeform_metadata', {
+        p_typeform_response_id: contact.typeform_response_id,
+        p_status: newStatus,
+        p_priority: priority,
+        p_notes: notes || null,
+        p_assigned_to: assignedTo || null,
+        p_partner: partner || null,
+      });
 
-      if (existing) {
-        const { error } = await supabase
-          .from('typeform_metadata')
-          .update({ status: newStatus })
-          .eq('typeform_response_id', contact.typeform_response_id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('typeform_metadata')
-          .insert({
-            typeform_response_id: contact.typeform_response_id,
-            status: newStatus,
-            priority: 'medium',
-          });
-
-        if (error) throw error;
-      }
+      if (error) throw error;
 
       if ((contact as any).network_id) {
         try {
