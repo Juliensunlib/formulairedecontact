@@ -31,7 +31,7 @@ export interface ContactRequest {
   country?: string;
   state_region?: string;
   motif?: string;
-  status: 'new' | 'in_progress' | 'contacted' | 'completed' | 'archived';
+  status: 'new' | 'to_contact' | 'qualified' | 'out_of_criteria' | 'to_relaunch';
   priority: 'low' | 'medium' | 'high';
   notes?: string;
   assigned_to?: string;
@@ -41,7 +41,7 @@ export interface ContactRequest {
 
 export interface TypeformMetadata {
   typeform_response_id: string;
-  status: 'new' | 'in_progress' | 'contacted' | 'completed' | 'archived';
+  status: 'new' | 'to_contact' | 'qualified' | 'out_of_criteria' | 'to_relaunch';
   priority: 'low' | 'medium' | 'high';
   notes?: string;
   assigned_to?: string;

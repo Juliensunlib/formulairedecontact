@@ -166,8 +166,8 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
                 )}
               </div>
               <div className="flex gap-2">
-                <StatusBadge status={contact.status} />
-                <PriorityBadge priority={contact.priority} />
+                <StatusBadge status={status} />
+                <PriorityBadge priority={priority} />
               </div>
             </div>
 
@@ -238,10 +238,10 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
               >
                 <option value="new">Nouveau</option>
-                <option value="in_progress">En cours</option>
-                <option value="contacted">Contacté</option>
-                <option value="completed">Terminé</option>
-                <option value="archived">Archivé</option>
+                <option value="to_contact">A contacter</option>
+                <option value="qualified">Qualifié</option>
+                <option value="out_of_criteria">Hors Critères</option>
+                <option value="to_relaunch">A relancer</option>
               </select>
             </div>
 
@@ -319,20 +319,20 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
           <div className="space-y-3">
             <div className="flex gap-2 p-3 bg-gray-50 rounded-lg">
               <button
-                onClick={() => handleQuickAction('in_progress')}
-                disabled={status === 'in_progress'}
+                onClick={() => handleQuickAction('to_contact')}
+                disabled={status === 'to_contact'}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                Marquer en cours
+                A contacter
               </button>
               <button
-                onClick={() => handleQuickAction('completed')}
-                disabled={status === 'completed'}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium"
+                onClick={() => handleQuickAction('qualified')}
+                disabled={status === 'qualified'}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                Marquer terminé
+                Qualifié
               </button>
             </div>
 
