@@ -149,7 +149,8 @@ export async function syncStatusAndPriorityToAirtable(
   networkId: string,
   status: string,
   priority: string,
-  assignedTo?: string | null
+  assignedTo?: string | null,
+  partner?: string | null
 ): Promise<void> {
   try {
     const recordId = await findAirtableRecordByNetworkId(networkId);
@@ -166,6 +167,10 @@ export async function syncStatusAndPriorityToAirtable(
 
     if (assignedTo !== undefined) {
       fields['Assigné à'] = assignedTo || '';
+    }
+
+    if (partner !== undefined) {
+      fields['Partenaire'] = partner || '';
     }
 
     await updateAirtableRecord(recordId, fields);
@@ -196,6 +201,7 @@ export async function createOrUpdateAirtableRecord(
     status?: string;
     priority?: string;
     assignedTo?: string;
+    partner?: string;
   }
 ): Promise<string> {
   const token = import.meta.env.VITE_AIRTABLE_TOKEN;
@@ -230,6 +236,7 @@ export async function createOrUpdateAirtableRecord(
     'Statut': mapStatusToAirtable(typeformData.status || 'new'),
     'Priorité': mapPriorityToAirtable(typeformData.priority || 'medium'),
     'Assigné à': typeformData.assignedTo || '',
+    'Partenaire': typeformData.partner || '',
   };
 
   if (existingRecordId) {

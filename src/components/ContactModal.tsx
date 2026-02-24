@@ -62,7 +62,7 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
 
       if ((contact as any).network_id) {
         try {
-          await syncStatusAndPriorityToAirtable((contact as any).network_id, status, priority, assignedTo);
+          await syncStatusAndPriorityToAirtable((contact as any).network_id, status, priority, assignedTo, partner);
         } catch (airtableError) {
           console.error('Airtable sync failed:', airtableError);
         }
@@ -94,7 +94,7 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
 
       if ((contact as any).network_id) {
         try {
-          await syncStatusAndPriorityToAirtable((contact as any).network_id, 'archived', priority, assignedTo);
+          await syncStatusAndPriorityToAirtable((contact as any).network_id, 'archived', priority, assignedTo, partner);
         } catch (airtableError) {
           console.error('Airtable sync failed:', airtableError);
         }
@@ -123,7 +123,7 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
 
       if ((contact as any).network_id) {
         try {
-          await syncStatusAndPriorityToAirtable((contact as any).network_id, newStatus, priority, assignedTo);
+          await syncStatusAndPriorityToAirtable((contact as any).network_id, newStatus, priority, assignedTo, partner);
         } catch (airtableError) {
           console.error('Airtable sync failed:', airtableError);
         }
