@@ -69,13 +69,19 @@ Deno.serve(async (req: Request) => {
     let afterToken: string | undefined = undefined;
     const pageSize = 1000;
     let totalItems = 0;
+    let pageCount = 0;
+
+    console.log('Starting to fetch Typeform responses...');
 
     do {
+      pageCount++;
       const typeformUrl = new URL(`https://api.typeform.com/forms/${formId}/responses`);
       typeformUrl.searchParams.set('page_size', pageSize.toString());
       if (afterToken) {
         typeformUrl.searchParams.set('after', afterToken);
       }
+
+      console.log(`Fetching page ${pageCount}, URL: ${typeformUrl.toString()}`);
 
       const typeformResponse = await fetch(typeformUrl.toString(), {
         headers: {
@@ -84,6 +90,8 @@ Deno.serve(async (req: Request) => {
       });
 
       if (!typeformResponse.ok) {
+        const errorText = await typeformResponse.text();
+        console.error(`Typeform API error: ${typeformResponse.status}`, errorText);
         throw new Error(`Typeform API error: ${typeformResponse.status}`);
       }
 
@@ -91,17 +99,26 @@ Deno.serve(async (req: Request) => {
       const items: TypeformResponse[] = data.items || [];
       totalItems = data.total_items || 0;
 
-      if (items.length === 0) break;
+      console.log(`Page ${pageCount}: Retrieved ${items.length} responses, Total in Typeform: ${totalItems}, Collected so far: ${allResponses.length}`);
+
+      if (items.length === 0) {
+        console.log('No more items, breaking loop');
+        break;
+      }
 
       allResponses = allResponses.concat(items);
 
       if (items.length < pageSize) {
+        console.log(`Retrieved ${items.length} items, less than page size ${pageSize}, this is the last page`);
         break;
       }
 
       afterToken = items[items.length - 1]?.token;
+      console.log(`Next page token: ${afterToken}`);
 
     } while (afterToken && allResponses.length < totalItems);
+
+    console.log(`Finished fetching. Total pages: ${pageCount}, Total responses collected: ${allResponses.length}`);
 
     const { data: metadata } = await supabase
       .from('typeform_metadata')
