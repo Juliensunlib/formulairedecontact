@@ -88,30 +88,8 @@ export function ContactCard({ contact, onClick }: ContactCardProps) {
               {(contact as any).address && `${(contact as any).address}, `}
               {(contact as any).city}
               {(contact as any).postal_code && ` ${(contact as any).postal_code}`}
-              {(contact as any).country && `, ${(contact as any).country}`}
+              {(contact as any).department && `, ${(contact as any).department}`}
             </span>
-          </div>
-        )}
-        {(contact as any).department && (
-          <div className="flex items-center text-sm text-gray-600">
-            <MapPinned className="w-4 h-4 mr-2 text-green-600 flex-shrink-0" />
-            <span className="truncate">{(contact as any).department}</span>
-          </div>
-        )}
-        {(contact.besoin || contact.secteur) && (
-          <div className="flex items-start text-sm text-gray-700">
-            <MessageSquare className="w-4 h-4 mr-2 text-green-600 mt-0.5 flex-shrink-0" />
-            <p className="line-clamp-2">
-              {contact.besoin && <span><strong>Besoin:</strong> {contact.besoin}</span>}
-              {contact.besoin && contact.secteur && ' • '}
-              {contact.secteur && <span><strong>Secteur:</strong> {contact.secteur}</span>}
-            </p>
-          </div>
-        )}
-        {contact.message && (
-          <div className="flex items-start text-sm text-gray-700">
-            <MessageSquare className="w-4 h-4 mr-2 text-blue-600 mt-0.5 flex-shrink-0" />
-            <p className="line-clamp-2 italic">{contact.message}</p>
           </div>
         )}
       </div>
