@@ -1,7 +1,7 @@
 import { AirtableRecord, mapStatusFromAirtable, mapPriorityFromAirtable, RHCollaborator } from '../lib/airtable';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
-import { User, Building2 } from 'lucide-react';
+import { User, Building2, Users, Building } from 'lucide-react';
 
 interface AirtableCardProps {
   record: AirtableRecord;
@@ -22,6 +22,7 @@ export function AirtableCard({ record, onClick, rhCollaborators }: AirtableCardP
     : '';
 
   const partner = record.fields['Partenaire'] as string;
+  const customerType = record.fields['Type de client'] as string;
 
   const formatValue = (value: any): string => {
     if (value === null || value === undefined) return '-';
@@ -46,6 +47,20 @@ export function AirtableCard({ record, onClick, rhCollaborators }: AirtableCardP
         </div>
       </div>
       <div className="flex flex-wrap gap-2 mb-3">
+        {customerType && (
+          <div className={`flex items-center text-sm px-3 py-1.5 rounded w-fit ${
+            customerType === 'Particulier'
+              ? 'text-purple-700 bg-purple-50'
+              : 'text-orange-700 bg-orange-50'
+          }`}>
+            {customerType === 'Particulier' ? (
+              <Users className="w-4 h-4 mr-1.5" />
+            ) : (
+              <Building className="w-4 h-4 mr-1.5" />
+            )}
+            <span className="font-medium">{customerType}</span>
+          </div>
+        )}
         {assignedTo && (
           <div className="flex items-center text-sm text-green-700 bg-green-50 px-3 py-1.5 rounded w-fit">
             <User className="w-4 h-4 mr-1.5" />

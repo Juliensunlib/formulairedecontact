@@ -26,6 +26,7 @@ function App() {
   const [airtableStatusFilter, setAirtableStatusFilter] = useState<string>('all');
   const [airtableAssignedToFilter, setAirtableAssignedToFilter] = useState<string>('all');
   const [airtablePartnerFilter, setAirtablePartnerFilter] = useState<string>('all');
+  const [airtableCustomerTypeFilter, setAirtableCustomerTypeFilter] = useState<string>('all');
   const [airtableStats, setAirtableStats] = useState({
     new: 0,
     to_contact: 0,
@@ -415,6 +416,13 @@ function App() {
       });
     }
 
+    if (airtableCustomerTypeFilter !== 'all') {
+      filtered = filtered.filter(r => {
+        const customerType = r.fields['Type de client'] as string;
+        return customerType === airtableCustomerTypeFilter;
+      });
+    }
+
     filtered.sort((a, b) => {
       const dateA = new Date(a.createdTime).getTime();
       const dateB = new Date(b.createdTime).getTime();
@@ -422,7 +430,7 @@ function App() {
     });
 
     setFilteredAirtableRecords(filtered);
-  }, [airtableRecords, airtableStatusFilter, airtableAssignedToFilter, airtablePartnerFilter, rhCollaborators]);
+  }, [airtableRecords, airtableStatusFilter, airtableAssignedToFilter, airtablePartnerFilter, airtableCustomerTypeFilter, rhCollaborators]);
 
   const stats = {
     new: contacts.filter(c => c.status === 'new').length,
@@ -616,7 +624,7 @@ function App() {
                 <Filter className="w-5 h-5 text-gray-600" />
                 <h3 className="font-medium text-gray-900">Filtres - Leads Solaires</h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Statut
@@ -632,6 +640,20 @@ function App() {
                     <option value="Qualifié">Qualifié</option>
                     <option value="Hors Critères">Hors Critères</option>
                     <option value="A relancer">A relancer</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Type de client
+                  </label>
+                  <select
+                    value={airtableCustomerTypeFilter}
+                    onChange={(e) => setAirtableCustomerTypeFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  >
+                    <option value="all">Tous les types</option>
+                    <option value="Particulier">Particulier</option>
+                    <option value="Entreprise">Entreprise</option>
                   </select>
                 </div>
                 <div>
