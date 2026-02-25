@@ -25,6 +25,15 @@ export function mapTypeformResponseToContact(response: TypeformResponse): Contac
     priority: response.priority as 'low' | 'medium' | 'high',
     partner: response.partner || undefined,
     assigned_to: response.assigned_to || '',
+    notes: (response as any).notes || '',
+    requester_type: (response as any).requester_type || '',
+    address: (response as any).address || '',
+    address_line2: (response as any).address_line2 || '',
+    city: (response as any).city || '',
+    postal_code: (response as any).postal_code || '',
+    state_region: (response as any).state_region || '',
+    country: (response as any).country || '',
+    department: (response as any).department || '',
     raw_data: response.raw_data,
   };
 }

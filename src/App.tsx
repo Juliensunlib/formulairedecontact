@@ -434,8 +434,10 @@ function App() {
 
   const stats = {
     new: contacts.filter(c => c.status === 'new').length,
-    in_progress: contacts.filter(c => c.status === 'in_progress').length,
-    completed: contacts.filter(c => c.status === 'completed').length,
+    to_contact: contacts.filter(c => c.status === 'to_contact').length,
+    qualified: contacts.filter(c => c.status === 'qualified').length,
+    out_of_criteria: contacts.filter(c => c.status === 'out_of_criteria').length,
+    to_relaunch: contacts.filter(c => c.status === 'to_relaunch').length,
     total: contacts.length,
   };
 
@@ -522,11 +524,13 @@ function App() {
 
           {activeTab === 'typeform' && (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
                 <StatsCard title="Nouveaux" value={stats.new} icon={Inbox} color="green" />
-                <StatsCard title="En cours" value={stats.in_progress} icon={Clock} color="blue" />
-                <StatsCard title="Terminés" value={stats.completed} icon={CheckCircle} color="gray" />
-                <StatsCard title="Total" value={stats.total} icon={Archive} color="yellow" />
+                <StatsCard title="A contacter" value={stats.to_contact} icon={Bell} color="blue" />
+                <StatsCard title="A relancer" value={stats.to_relaunch} icon={Clock} color="yellow" />
+                <StatsCard title="Qualifiés" value={stats.qualified} icon={CheckCircle} color="green" />
+                <StatsCard title="Hors Critères" value={stats.out_of_criteria} icon={Trash2} color="red" />
+                <StatsCard title="Total" value={stats.total} icon={Archive} color="gray" />
               </div>
 
               <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
@@ -546,10 +550,10 @@ function App() {
                     >
                       <option value="all">Tous les statuts</option>
                       <option value="new">Nouveau</option>
-                      <option value="in_progress">En cours</option>
-                      <option value="contacted">Contacté</option>
-                      <option value="completed">Terminé</option>
-                      <option value="archived">Archivé</option>
+                      <option value="to_contact">A contacter</option>
+                      <option value="qualified">Qualifié</option>
+                      <option value="out_of_criteria">Hors Critères</option>
+                      <option value="to_relaunch">A relancer</option>
                     </select>
                   </div>
                   <div>

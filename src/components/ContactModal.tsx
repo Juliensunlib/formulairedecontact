@@ -59,6 +59,7 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
         priority,
         partner: partner || null,
         assigned_to: assignedTo || null,
+        notes: notes || '',
       });
 
       if ((contact as any).network_id) {

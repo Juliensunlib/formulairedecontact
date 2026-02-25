@@ -20,6 +20,14 @@ interface TypeformAnswer {
   choice?: {
     label: string;
   };
+  address?: {
+    line_1?: string;
+    line_2?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+    country?: string;
+  };
 }
 
 interface TypeformResponse {
@@ -89,6 +97,16 @@ function extractFieldValue(
   return "";
 }
 
+function extractAddressField(
+  answers: TypeformAnswer[],
+  fieldRef: string,
+  addressPart: 'line_1' | 'line_2' | 'city' | 'state' | 'zip' | 'country'
+): string {
+  const answer = answers.find((a) => a.field.ref === fieldRef);
+  if (!answer || !answer.address) return "";
+  return answer.address[addressPart] || "";
+}
+
 function calculatePriority(response: TypeformResponse): string {
   const answers = response.answers;
   const secteur = extractFieldValue(answers, "secteur") || "";
@@ -144,6 +162,8 @@ Deno.serve(async (req: Request) => {
       try {
         const answers = response.answers;
 
+        const addressFieldRef = "71fbca53-3b53-4a19-ae26-69e83c0aa542";
+
         const responseData = {
           response_id: response.response_id,
           form_id: typeformFormId,
@@ -156,6 +176,13 @@ Deno.serve(async (req: Request) => {
           secteur: extractFieldValue(answers, "444b183b-c91d-4fbd-b31d-b00c3839392a"),
           besoin: extractFieldValue(answers, "444b183b-c91d-4fbd-b31d-b00c3839392a"),
           message: "",
+          requester_type: extractFieldValue(answers, "vous_etes"),
+          address: extractAddressField(answers, addressFieldRef, "line_1"),
+          address_line2: extractAddressField(answers, addressFieldRef, "line_2"),
+          city: extractAddressField(answers, addressFieldRef, "city"),
+          state_region: extractAddressField(answers, addressFieldRef, "state"),
+          postal_code: extractAddressField(answers, addressFieldRef, "zip"),
+          country: extractAddressField(answers, addressFieldRef, "country"),
           raw_data: response,
           priority: calculatePriority(response),
           status: "new",
@@ -163,13 +190,24 @@ Deno.serve(async (req: Request) => {
 
         const { data: existing } = await supabase
           .from("typeform_responses")
-          .select("id")
+          .select("id, status, priority, notes, partner, assigned_to")
           .eq("response_id", response.response_id)
           .maybeSingle();
 
+        const dataToUpsert = existing
+          ? {
+              ...responseData,
+              status: existing.status || "new",
+              priority: existing.priority || "medium",
+              notes: existing.notes || "",
+              partner: existing.partner || null,
+              assigned_to: existing.assigned_to || null,
+            }
+          : responseData;
+
         const { error: upsertError } = await supabase
           .from("typeform_responses")
-          .upsert(responseData, {
+          .upsert(dataToUpsert, {
             onConflict: "response_id",
             ignoreDuplicates: false,
           });

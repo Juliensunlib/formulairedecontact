@@ -42,6 +42,7 @@ export async function updateTypeformResponseMetadata(
     priority?: string;
     partner?: string | null;
     assigned_to?: string | null;
+    notes?: string;
   }
 ): Promise<void> {
   const { error } = await supabase
