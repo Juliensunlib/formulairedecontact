@@ -19,7 +19,7 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
   );
   const [notes, setNotes] = useState((record.fields['Notes internes'] as string) || '');
   const [partner, setPartner] = useState((record.fields['Partenaire'] as string) || '');
-  const [customerType, setCustomerType] = useState<'Particulier' | 'Entreprise'>((record.fields['Type de client'] as string) || 'Particulier');
+  const [customerType, setCustomerType] = useState<string>((record.fields['Type de client'] as string) || '');
   const [collaborators, setCollaborators] = useState<RHCollaborator[]>([]);
   const [selectedCollaboratorId, setSelectedCollaboratorId] = useState<string>('');
   const [loadingCollaborators, setLoadingCollaborators] = useState(true);
@@ -72,8 +72,11 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
         'Priorité': mapPriorityToAirtable(priority),
         'Notes internes': notes || '',
         'Partenaire': partner || '',
-        'Type de client': customerType,
       };
+
+      if (customerType) {
+        updateFields['Type de client'] = customerType;
+      }
 
       if (selectedCollaboratorId) {
         updateFields['RH'] = [selectedCollaboratorId];
@@ -237,16 +240,19 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
                   {customerType === 'Particulier' ? (
                     <Users className="w-4 h-4" />
-                  ) : (
+                  ) : customerType === 'Entreprise' ? (
                     <Building className="w-4 h-4" />
+                  ) : (
+                    <User className="w-4 h-4" />
                   )}
                   Type de client
                 </label>
                 <select
                   value={customerType}
-                  onChange={(e) => setCustomerType(e.target.value as 'Particulier' | 'Entreprise')}
+                  onChange={(e) => setCustomerType(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 >
+                  <option value="">-- Non défini --</option>
                   <option value="Particulier">Particulier</option>
                   <option value="Entreprise">Entreprise</option>
                 </select>
