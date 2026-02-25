@@ -21,6 +21,7 @@ export function mapTypeformResponseToContact(response: TypeformResponse): Contac
     message: response.message,
     besoin: response.besoin,
     secteur: response.secteur,
+    motif: (response as any).motif || '',
     status: response.status as 'new' | 'to_contact' | 'qualified' | 'out_of_criteria' | 'to_relaunch',
     priority: response.priority as 'low' | 'medium' | 'high',
     partner: response.partner || undefined,

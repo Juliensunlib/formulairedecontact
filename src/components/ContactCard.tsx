@@ -1,4 +1,4 @@
-import { Mail, Phone, Building2, MessageSquare, Calendar, User, MapPin, Users, Link2 } from 'lucide-react';
+import { Mail, Phone, Building2, MessageSquare, Calendar, User, MapPin, Users, Link2, Briefcase, MapPinned } from 'lucide-react';
 import { ContactRequest } from '../lib/supabase';
 import { StatusBadge } from './StatusBadge';
 import { PriorityBadge } from './PriorityBadge';
@@ -65,30 +65,53 @@ export function ContactCard({ contact, onClick }: ContactCardProps) {
       <div className="space-y-2 mb-3">
         {contact.email && (
           <div className="flex items-center text-sm text-gray-700">
-            <Mail className="w-4 h-4 mr-2 text-green-600" />
-            {contact.email}
+            <Mail className="w-4 h-4 mr-2 text-green-600 flex-shrink-0" />
+            <span className="truncate">{contact.email}</span>
           </div>
         )}
         {contact.phone && (
           <div className="flex items-center text-sm text-gray-700">
-            <Phone className="w-4 h-4 mr-2 text-green-600" />
+            <Phone className="w-4 h-4 mr-2 text-green-600 flex-shrink-0" />
             {contact.phone}
+          </div>
+        )}
+        {contact.motif && (
+          <div className="flex items-start text-sm text-gray-700">
+            <Briefcase className="w-4 h-4 mr-2 text-green-600 mt-0.5 flex-shrink-0" />
+            <span className="line-clamp-1 font-medium">{contact.motif}</span>
           </div>
         )}
         {((contact as any).address || (contact as any).city) && (
           <div className="flex items-start text-sm text-gray-700">
             <MapPin className="w-4 h-4 mr-2 text-green-600 mt-0.5 flex-shrink-0" />
-            <span className="line-clamp-1">
+            <span className="line-clamp-2">
               {(contact as any).address && `${(contact as any).address}, `}
               {(contact as any).city}
               {(contact as any).postal_code && ` ${(contact as any).postal_code}`}
+              {(contact as any).country && `, ${(contact as any).country}`}
             </span>
+          </div>
+        )}
+        {(contact as any).department && (
+          <div className="flex items-center text-sm text-gray-600">
+            <MapPinned className="w-4 h-4 mr-2 text-green-600 flex-shrink-0" />
+            <span className="truncate">{(contact as any).department}</span>
+          </div>
+        )}
+        {(contact.besoin || contact.secteur) && (
+          <div className="flex items-start text-sm text-gray-700">
+            <MessageSquare className="w-4 h-4 mr-2 text-green-600 mt-0.5 flex-shrink-0" />
+            <p className="line-clamp-2">
+              {contact.besoin && <span><strong>Besoin:</strong> {contact.besoin}</span>}
+              {contact.besoin && contact.secteur && ' • '}
+              {contact.secteur && <span><strong>Secteur:</strong> {contact.secteur}</span>}
+            </p>
           </div>
         )}
         {contact.message && (
           <div className="flex items-start text-sm text-gray-700">
-            <MessageSquare className="w-4 h-4 mr-2 text-green-600 mt-0.5 flex-shrink-0" />
-            <p className="line-clamp-2">{contact.message}</p>
+            <MessageSquare className="w-4 h-4 mr-2 text-blue-600 mt-0.5 flex-shrink-0" />
+            <p className="line-clamp-2 italic">{contact.message}</p>
           </div>
         )}
       </div>

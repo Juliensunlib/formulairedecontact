@@ -162,8 +162,6 @@ Deno.serve(async (req: Request) => {
       try {
         const answers = response.answers;
 
-        const addressFieldRef = "71fbca53-3b53-4a19-ae26-69e83c0aa542";
-
         const responseData = {
           response_id: response.response_id,
           form_id: typeformFormId,
@@ -175,14 +173,16 @@ Deno.serve(async (req: Request) => {
           entreprise: extractFieldValue(answers, "706b2940-2868-49e5-8e46-8de8d2885c0a"),
           secteur: extractFieldValue(answers, "444b183b-c91d-4fbd-b31d-b00c3839392a"),
           besoin: extractFieldValue(answers, "444b183b-c91d-4fbd-b31d-b00c3839392a"),
-          message: "",
-          requester_type: extractFieldValue(answers, "vous_etes"),
-          address: extractAddressField(answers, addressFieldRef, "line_1"),
-          address_line2: extractAddressField(answers, addressFieldRef, "line_2"),
-          city: extractAddressField(answers, addressFieldRef, "city"),
-          state_region: extractAddressField(answers, addressFieldRef, "state"),
-          postal_code: extractAddressField(answers, addressFieldRef, "zip"),
-          country: extractAddressField(answers, addressFieldRef, "country"),
+          motif: extractFieldValue(answers, "444b183b-c91d-4fbd-b31d-b00c3839392a"),
+          message: extractFieldValue(answers, "message") || "",
+          requester_type: extractFieldValue(answers, "444b183b-c91d-4fbd-b31d-b00c3839392a"),
+          address: extractFieldValue(answers, "40cb8991-6622-4755-a410-10df28f27570"),
+          address_line2: "",
+          city: extractFieldValue(answers, "9949e625-2a58-4db9-9b63-53af19fdbde6"),
+          state_region: "",
+          postal_code: extractFieldValue(answers, "4e2fbe67-b13a-4d97-8788-98fab85601bd"),
+          country: extractFieldValue(answers, "e11fd014-2917-409c-8097-4918e4e69fa6"),
+          department: extractFieldValue(answers, "9c154787-a439-4401-bdf4-a45db97b91a7"),
           raw_data: response,
           priority: calculatePriority(response),
           status: "new",

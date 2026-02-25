@@ -1,4 +1,4 @@
-import { X, Mail, Phone, Building2, MessageSquare, Calendar, FileText, User, Trash2, CheckCircle2, MapPin, Users, Link2 } from 'lucide-react';
+import { X, Mail, Phone, Building2, MessageSquare, Calendar, FileText, User, Trash2, CheckCircle2, MapPin, Users, Link2, Briefcase, MapPinned } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { ContactRequest } from '../lib/supabase';
 import { StatusBadge } from './StatusBadge';
@@ -215,6 +215,34 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
               )}
             </div>
           </div>
+
+          {(contact.motif || contact.besoin || contact.secteur) && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start">
+                <Briefcase className="w-5 h-5 mr-2 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h4 className="font-medium text-gray-900 mb-2">Informations de la demande</h4>
+                  <div className="space-y-2 text-gray-700">
+                    {contact.motif && (
+                      <div>
+                        <span className="font-medium">Motif:</span> {contact.motif}
+                      </div>
+                    )}
+                    {contact.besoin && (
+                      <div>
+                        <span className="font-medium">Besoin:</span> {contact.besoin}
+                      </div>
+                    )}
+                    {contact.secteur && (
+                      <div>
+                        <span className="font-medium">Secteur:</span> {contact.secteur}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {contact.message && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
