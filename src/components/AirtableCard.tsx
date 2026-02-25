@@ -41,26 +41,26 @@ export function AirtableCard({ record, onClick, rhCollaborators }: AirtableCardP
       className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-lg transition-all cursor-pointer hover:border-green-300"
     >
       <div className="flex items-start justify-between mb-3">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <StatusBadge status={status} />
           <PriorityBadge priority={priority} />
+          {customerType && (
+            <div className={`flex items-center text-sm px-3 py-1.5 rounded w-fit ${
+              customerType === 'Particulier'
+                ? 'text-purple-700 bg-purple-50'
+                : 'text-orange-700 bg-orange-50'
+            }`}>
+              {customerType === 'Particulier' ? (
+                <Users className="w-4 h-4 mr-1.5" />
+              ) : (
+                <Building className="w-4 h-4 mr-1.5" />
+              )}
+              <span className="font-medium">{customerType}</span>
+            </div>
+          )}
         </div>
       </div>
       <div className="flex flex-wrap gap-2 mb-3">
-        {customerType && (
-          <div className={`flex items-center text-sm px-3 py-1.5 rounded w-fit ${
-            customerType === 'Particulier'
-              ? 'text-purple-700 bg-purple-50'
-              : 'text-orange-700 bg-orange-50'
-          }`}>
-            {customerType === 'Particulier' ? (
-              <Users className="w-4 h-4 mr-1.5" />
-            ) : (
-              <Building className="w-4 h-4 mr-1.5" />
-            )}
-            <span className="font-medium">{customerType}</span>
-          </div>
-        )}
         {assignedTo && (
           <div className="flex items-center text-sm text-green-700 bg-green-50 px-3 py-1.5 rounded w-fit">
             <User className="w-4 h-4 mr-1.5" />
