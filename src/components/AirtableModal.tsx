@@ -1,4 +1,4 @@
-import { X, Calendar, FileText, User, Trash2, CheckCircle2, Database, Building2 } from 'lucide-react';
+import { X, Calendar, FileText, User, Trash2, CheckCircle2, Database, Building2, Users, Building } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { AirtableRecord, updateAirtableRecord, mapStatusFromAirtable, mapPriorityFromAirtable, mapStatusToAirtable, mapPriorityToAirtable, fetchRHCollaborators, RHCollaborator } from '../lib/airtable';
 import { StatusBadge } from './StatusBadge';
@@ -19,6 +19,7 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
   );
   const [notes, setNotes] = useState((record.fields['Notes internes'] as string) || '');
   const [partner, setPartner] = useState((record.fields['Partenaire'] as string) || '');
+  const [customerType, setCustomerType] = useState<'Particulier' | 'Entreprise'>((record.fields['Type de client'] as string) || 'Particulier');
   const [collaborators, setCollaborators] = useState<RHCollaborator[]>([]);
   const [selectedCollaboratorId, setSelectedCollaboratorId] = useState<string>('');
   const [loadingCollaborators, setLoadingCollaborators] = useState(true);
@@ -71,6 +72,7 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
         'Priorité': mapPriorityToAirtable(priority),
         'Notes internes': notes || '',
         'Partenaire': partner || '',
+        'Type de client': customerType,
       };
 
       if (selectedCollaboratorId) {
@@ -198,7 +200,7 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <h4 className="font-semibold text-green-900 mb-3">Suivi et gestion</h4>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Statut
@@ -228,6 +230,25 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
                   <option value="low">Basse</option>
                   <option value="medium">Moyenne</option>
                   <option value="high">Haute</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                  {customerType === 'Particulier' ? (
+                    <Users className="w-4 h-4" />
+                  ) : (
+                    <Building className="w-4 h-4" />
+                  )}
+                  Type de client
+                </label>
+                <select
+                  value={customerType}
+                  onChange={(e) => setCustomerType(e.target.value as 'Particulier' | 'Entreprise')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                >
+                  <option value="Particulier">Particulier</option>
+                  <option value="Entreprise">Entreprise</option>
                 </select>
               </div>
             </div>
