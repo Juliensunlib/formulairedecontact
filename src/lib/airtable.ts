@@ -174,8 +174,17 @@ export async function syncStatusAndPriorityToAirtable(
     }
 
     await updateAirtableRecord(recordId, fields);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erreur lors de la synchronisation avec Airtable:', error);
+
+    if (error.message && error.message.includes('INVALID_MULTIPLE_CHOICE_OPTIONS')) {
+      const statusLabel = mapStatusToAirtable(status);
+      throw new Error(
+        `L'option "${statusLabel}" n'existe pas dans Airtable. ` +
+        `Veuillez ajouter cette option au champ "Statut" dans votre table Airtable avant de continuer.`
+      );
+    }
+
     throw error;
   }
 }
