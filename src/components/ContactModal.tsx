@@ -13,6 +13,12 @@ interface ContactModalProps {
 }
 
 export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) {
+  console.log('🔍 Debug - Contact ouvert:', {
+    name: contact.name,
+    assigned_to: `"${contact.assigned_to}"`,
+    assigned_to_type: typeof contact.assigned_to,
+  });
+
   const [status, setStatus] = useState(contact.status);
   const [priority, setPriority] = useState(contact.priority);
   const [notes, setNotes] = useState(contact.notes || '');
@@ -28,6 +34,8 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
       setLoadingCollaborators(true);
       try {
         const rhCollaborators = await fetchRHCollaborators();
+        console.log('🔍 Debug - Contact assigned_to:', `"${assignedTo}"`);
+        console.log('🔍 Debug - RH Collaborators:', rhCollaborators.map(c => `"${c.name}"`));
         setCollaborators(rhCollaborators);
       } catch (error) {
         console.error('Erreur chargement collaborateurs RH:', error);
@@ -37,7 +45,7 @@ export function ContactModal({ contact, onClose, onUpdate }: ContactModalProps) 
     };
 
     loadCollaborators();
-  }, []);
+  }, [assignedTo]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {

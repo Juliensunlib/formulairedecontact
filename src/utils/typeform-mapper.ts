@@ -21,10 +21,10 @@ export function mapTypeformResponseToContact(response: TypeformResponse): Contac
     message: response.message,
     besoin: response.besoin,
     secteur: response.secteur,
-    status: response.status as 'new' | 'in_progress' | 'contacted' | 'completed' | 'archived',
+    status: response.status as 'new' | 'to_contact' | 'qualified' | 'out_of_criteria' | 'to_relaunch',
     priority: response.priority as 'low' | 'medium' | 'high',
     partner: response.partner || undefined,
-    assigned_to: response.assigned_to || undefined,
+    assigned_to: response.assigned_to || '',
     raw_data: response.raw_data,
   };
 }
