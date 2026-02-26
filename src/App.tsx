@@ -332,7 +332,7 @@ function App() {
       const interval = setInterval(() => {
         fetchContacts();
         setLastUpdate(new Date());
-      }, 300000);
+      }, 30000);
 
       return () => {
         clearInterval(interval);
@@ -343,7 +343,7 @@ function App() {
       const interval = setInterval(() => {
         fetchAirtable();
         setLastUpdate(new Date());
-      }, 300000);
+      }, 30000);
 
       return () => {
         clearInterval(interval);
