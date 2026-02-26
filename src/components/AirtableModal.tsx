@@ -105,9 +105,9 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
 
       if (onUpdate) onUpdate();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating record:', error);
-      alert('Erreur lors de la mise à jour');
+      alert(`Erreur lors de la mise à jour:\n\n${error.message || 'Erreur inconnue'}\n\nSi l'option "Hors Critères" n'existe pas dans Airtable, veuillez l'ajouter au champ "Statut" dans votre table.`);
     } finally {
       setDeleting(false);
     }
