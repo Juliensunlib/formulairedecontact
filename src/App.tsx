@@ -161,8 +161,6 @@ function App() {
       setError2026('');
       setLoading2026(true);
 
-      const { supabase } = await import('./lib/supabase');
-
       const { data, error } = await supabase
         .from('typeform_responses_2026')
         .select('*')
