@@ -323,28 +323,22 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const typeformToken = Deno.env.get("TYPEFORM_TOKEN");
-    if (!typeformToken) {
-      throw new Error("Missing TYPEFORM_TOKEN");
-    }
+    const typeformToken2 = Deno.env.get("TYPEFORM_TOKEN_2");
 
     console.log("=== Starting Unified Typeform Sync ===");
     console.log(`Forms to sync: V0 (${TYPEFORM_FORMS.V0}), MAR26 (${TYPEFORM_FORMS.MAR26})`);
+    console.log(`Token 1: ${typeformToken ? 'Available' : 'Missing'}`);
+    console.log(`Token 2: ${typeformToken2 ? 'Available' : 'Missing'}`);
 
-    // Synchroniser le formulaire V0
-    const v0Stats = await syncForm(
-      TYPEFORM_FORMS.V0,
-      "V0",
-      typeformToken,
-      supabase
-    );
+    // Synchroniser le formulaire V0 avec le token 1
+    const v0Stats = typeformToken
+      ? await syncForm(TYPEFORM_FORMS.V0, "V0", typeformToken, supabase)
+      : { inserted: 0, updated: 0, errors: 0, skipped: true, error: "TYPEFORM_TOKEN missing" };
 
-    // Synchroniser le formulaire MAR26
-    const mar26Stats = await syncForm(
-      TYPEFORM_FORMS.MAR26,
-      "MAR26",
-      typeformToken,
-      supabase
-    );
+    // Synchroniser le formulaire MAR26 avec le token 2
+    const mar26Stats = typeformToken2
+      ? await syncForm(TYPEFORM_FORMS.MAR26, "MAR26", typeformToken2, supabase)
+      : { inserted: 0, updated: 0, errors: 0, skipped: true, error: "TYPEFORM_TOKEN_2 missing" };
 
     // Résumé final
     const totalInserted = v0Stats.inserted + mar26Stats.inserted;
