@@ -109,17 +109,17 @@ function extractAddressField(
 
 function calculatePriority(response: TypeformResponse): string {
   const answers = response.answers;
-  const secteur = extractFieldValue(answers, "secteur") || "";
-  const besoin = extractFieldValue(answers, "besoin") || "";
+  const motif = extractFieldValue(answers, "8e330c5e-7d38-42c5-bb81-d49a676f1a10") || "";
+  const requesterType = extractFieldValue(answers, "444b183b-c91d-4fbd-b31d-b00c3839392a") || "";
 
-  const highPrioritySectors = ["tech", "finance", "santé"];
-  const highPriorityNeeds = ["urgent", "important"];
+  const highPriorityMotifs = ["urgent", "important", "problème technique"];
+  const highPriorityTypes = ["professionnel", "entreprise"];
 
   if (
-    highPrioritySectors.some((s) =>
-      secteur.toLowerCase().includes(s)
+    highPriorityMotifs.some((m) =>
+      motif.toLowerCase().includes(m)
     ) ||
-    highPriorityNeeds.some((n) => besoin.toLowerCase().includes(n))
+    highPriorityTypes.some((t) => requesterType.toLowerCase().includes(t))
   ) {
     return "high";
   }
@@ -171,15 +171,10 @@ Deno.serve(async (req: Request) => {
           email: extractFieldValue(answers, "d195deac-b331-4532-95cb-60885a5ffe02"),
           telephone: extractFieldValue(answers, "accebdb7-b799-4662-bd66-191f06910b78"),
           entreprise: extractFieldValue(answers, "706b2940-2868-49e5-8e46-8de8d2885c0a"),
-          secteur: extractFieldValue(answers, "444b183b-c91d-4fbd-b31d-b00c3839392a"),
-          besoin: extractFieldValue(answers, "8e330c5e-7d38-42c5-bb81-d49a676f1a10"),
-          motif: extractFieldValue(answers, "8e330c5e-7d38-42c5-bb81-d49a676f1a10"),
-          message: "",
           requester_type: extractFieldValue(answers, "444b183b-c91d-4fbd-b31d-b00c3839392a"),
+          motif: extractFieldValue(answers, "8e330c5e-7d38-42c5-bb81-d49a676f1a10"),
           address: extractFieldValue(answers, "40cb8991-6622-4755-a410-10df28f27570"),
-          address_line2: "",
           city: extractFieldValue(answers, "9949e625-2a58-4db9-9b63-53af19fdbde6"),
-          state_region: "",
           postal_code: extractFieldValue(answers, "4e2fbe67-b13a-4d97-8788-98fab85601bd"),
           country: extractFieldValue(answers, "e11fd014-2917-409c-8097-4918e4e69fa6"),
           department: extractFieldValue(answers, "9c154787-a439-4401-bdf4-a45db97b91a7"),
