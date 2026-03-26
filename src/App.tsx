@@ -161,22 +161,18 @@ function App() {
       setError2026('');
       setLoading2026(true);
 
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const { supabase } = await import('./lib/supabase');
 
-      const response = await fetch(`${supabaseUrl}/rest/v1/typeform_responses_2026?select=*&order=submitted_at.desc`, {
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-        },
-      });
+      const { data, error } = await supabase
+        .from('typeform_responses_2026')
+        .select('*')
+        .order('submitted_at', { ascending: false });
 
-      if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      if (error) {
+        throw new Error(`Erreur Supabase: ${error.message}`);
       }
 
-      const data = await response.json();
-      const mappedContacts = data.map((r: any) => ({
+      const mappedContacts = (data || []).map((r: any) => ({
         id: r.id,
         typeform_response_id: r.response_id,
         name: `${r.first_name || ''} ${r.last_name || ''}`.trim() || 'Sans nom',
