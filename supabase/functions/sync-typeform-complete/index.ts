@@ -336,10 +336,12 @@ Deno.serve(async (req: Request) => {
     console.log(`Token 1: ${typeformToken ? 'Available' : 'Missing'}`);
     console.log(`Token 2: ${typeformToken2 ? 'Available' : 'Missing'}`);
 
-    // Synchroniser le formulaire V0 avec le token 1
-    const v0Stats = typeformToken
+    // Utiliser le token 2 pour les deux formulaires (le token 2 a accès aux deux)
+    const v0Stats = typeformToken2
+      ? await syncForm(TYPEFORM_FORMS.V0, "V0", typeformToken2, supabase)
+      : typeformToken
       ? await syncForm(TYPEFORM_FORMS.V0, "V0", typeformToken, supabase)
-      : { inserted: 0, updated: 0, errors: 0, skipped: true, error: "TYPEFORM_TOKEN missing" };
+      : { inserted: 0, updated: 0, errors: 0, skipped: true, error: "No TYPEFORM_TOKEN available" };
 
     // Synchroniser le formulaire MAR26 avec le token 2
     const mar26Stats = typeformToken2
