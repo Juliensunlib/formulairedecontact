@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { RefreshCw, Filter, Inbox, Clock, CheckCircle, Archive, Sun, Bell, Trash2, X, Database, Download } from 'lucide-react';
-import { ContactRequest } from './lib/supabase';
+import { ContactRequest, supabase } from './lib/supabase';
 import { AirtableRecord, fetchAirtableRecords, fetchRHCollaborators, RHCollaborator } from './lib/airtable';
 import { fetchTypeformResponsesFromSupabase, syncAllTypeformResponses } from './lib/typeform-supabase';
 import { mapTypeformResponseToContact } from './utils/typeform-mapper';
