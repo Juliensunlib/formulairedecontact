@@ -262,7 +262,7 @@ async function syncForm(
 
       // Vérifier si la réponse existe déjà
       const { data: existing } = await supabase
-        .from("typeform_responses")
+        .from("typeform_responses_2026")
         .select("id, status, priority, notes, partner, assigned_to")
         .eq("response_id", response.response_id)
         .maybeSingle();
@@ -280,7 +280,7 @@ async function syncForm(
         : mappedData;
 
       const { error: upsertError } = await supabase
-        .from("typeform_responses")
+        .from("typeform_responses_2026")
         .upsert(dataToUpsert, {
           onConflict: "response_id",
           ignoreDuplicates: false,

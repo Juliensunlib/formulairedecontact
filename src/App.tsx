@@ -173,21 +173,25 @@ function App() {
       const mappedContacts = (data || []).map((r: any) => ({
         id: r.id,
         typeform_response_id: r.response_id,
-        name: `${r.first_name || ''} ${r.last_name || ''}`.trim() || 'Sans nom',
+        name: `${r.prenom || ''} ${r.nom || ''}`.trim() || 'Sans nom',
         email: r.email || '',
-        phone: r.phone || '',
-        company: r.company_name || '',
-        address: r.address_street || '',
-        city: r.address_city || '',
-        postal_code: r.address_postal_code || '',
-        country: r.address_country || '',
-        requester_type: r.company_type || '',
-        motif: r.project_type || '',
-        message: r.project_description || '',
+        phone: r.telephone || '',
+        company: r.entreprise || '',
+        address: r.address || '',
+        address_line2: r.address_line2 || '',
+        city: r.city || '',
+        state_region: r.state_region || '',
+        postal_code: r.postal_code || '',
+        country: r.country || '',
+        department: r.department || '',
+        requester_type: r.requester_type || '',
+        motif: r.motif || '',
+        message: r.message || '',
+        notes: r.notes || '',
         status: r.status || 'new',
         priority: r.priority || 'medium',
         assigned_to: r.assigned_to || '',
-        partner: r.source || '',
+        partner: r.partner || '',
         submitted_at: r.submitted_at,
         created_at: r.created_at,
       }));
@@ -206,7 +210,15 @@ function App() {
     setSyncing2026(true);
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const response = await fetch(`${supabaseUrl}/functions/v1/sync-typeform-2026?action=sync`);
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/sync-typeform-unified`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`Erreur ${response.status}: ${response.statusText}`);
@@ -215,7 +227,10 @@ function App() {
       const result = await response.json();
 
       if (result.success) {
-        alert(`✅ Synchronisation Typeform 2026 terminée!\n\n📥 ${result.total} réponses récupérées\n✓ ${result.synced} synchronisées\n${result.errors > 0 ? `❌ ${result.errors} erreurs` : ''}`);
+        const totalInserted = result.totals?.inserted || 0;
+        const totalUpdated = result.totals?.updated || 0;
+        const totalErrors = result.totals?.errors || 0;
+        alert(`✅ Synchronisation terminée!\n\n✓ ${totalInserted} nouvelles réponses\n↻ ${totalUpdated} mises à jour\n${totalErrors > 0 ? `❌ ${totalErrors} erreurs` : ''}`);
         await fetchContacts2026();
         setLastUpdate(new Date());
       } else {
