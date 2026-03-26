@@ -313,13 +313,19 @@ async function syncForm(
 }
 
 Deno.serve(async (req: Request) => {
+  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error("Supabase configuration missing");
+    }
+
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const typeformToken = Deno.env.get("TYPEFORM_TOKEN");
@@ -363,17 +369,25 @@ Deno.serve(async (req: Request) => {
     console.log(JSON.stringify(result, null, 2));
 
     return new Response(JSON.stringify(result), {
+      status: 200,
       headers: {
         ...corsHeaders,
         "Content-Type": "application/json",
       },
     });
   } catch (error) {
-    console.error("Sync error:", error);
+    console.error("Fatal sync error:", error);
+
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+
+    console.error("Error details:", { message: errorMessage, stack: errorStack });
+
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: errorMessage,
+        details: errorStack,
       }),
       {
         status: 500,

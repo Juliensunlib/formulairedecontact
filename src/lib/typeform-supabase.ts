@@ -72,7 +72,7 @@ export async function syncAllTypeformResponses(): Promise<{
   errors?: number;
   message: string;
 }> {
-  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-typeform-unified`;
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-typeform-complete`;
 
   const response = await fetch(url, {
     method: 'POST',
