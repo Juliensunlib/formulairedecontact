@@ -57,13 +57,22 @@ export async function updateTypeformResponseMetadata(
 
 export async function syncAllTypeformResponses(): Promise<{
   success: boolean;
-  total_fetched: number;
-  inserted: number;
-  updated: number;
-  errors: number;
+  forms?: {
+    v0: { inserted: number; updated: number; errors: number };
+    mar26: { inserted: number; updated: number; errors: number };
+  };
+  totals?: {
+    inserted: number;
+    updated: number;
+    errors: number;
+  };
+  total_fetched?: number;
+  inserted?: number;
+  updated?: number;
+  errors?: number;
   message: string;
 }> {
-  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-typeform-complete`;
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-typeform-unified`;
 
   const response = await fetch(url, {
     method: 'POST',
