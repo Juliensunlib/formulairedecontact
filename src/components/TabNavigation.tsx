@@ -1,6 +1,6 @@
 interface TabNavigationProps {
-  activeTab: 'typeform' | 'typeform2026' | 'airtable';
-  onTabChange: (tab: 'typeform' | 'typeform2026' | 'airtable') => void;
+  activeTab: 'typeform' | 'airtable';
+  onTabChange: (tab: 'typeform' | 'airtable') => void;
 }
 
 export function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
@@ -15,16 +15,6 @@ export function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
         }`}
       >
         Typeform
-      </button>
-      <button
-        onClick={() => onTabChange('typeform2026')}
-        className={`px-6 py-3 rounded-lg font-medium transition-all ${
-          activeTab === 'typeform2026'
-            ? 'bg-blue-600 text-white shadow-lg'
-            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-        }`}
-      >
-        Typeform 2026
       </button>
       <button
         onClick={() => onTabChange('airtable')}

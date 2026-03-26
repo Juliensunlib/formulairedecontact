@@ -12,23 +12,11 @@ import { StatsCard } from './components/StatsCard';
 import { TabNavigation } from './components/TabNavigation';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'typeform' | 'typeform2026' | 'airtable'>('typeform');
+  const [activeTab, setActiveTab] = useState<'typeform' | 'airtable'>('typeform');
 
   const [contacts, setContacts] = useState<ContactRequest[]>([]);
   const [filteredContacts, setFilteredContacts] = useState<ContactRequest[]>([]);
   const [selectedContact, setSelectedContact] = useState<ContactRequest | null>(null);
-
-  const [contacts2026, setContacts2026] = useState<ContactRequest[]>([]);
-  const [filteredContacts2026, setFilteredContacts2026] = useState<ContactRequest[]>([]);
-  const [selectedContact2026, setSelectedContact2026] = useState<ContactRequest | null>(null);
-  const [loading2026, setLoading2026] = useState(true);
-  const [syncing2026, setSyncing2026] = useState(false);
-  const [error2026, setError2026] = useState<string>('');
-  const [statusFilter2026, setStatusFilter2026] = useState<string>('all');
-  const [priorityFilter2026, setPriorityFilter2026] = useState<string>('all');
-  const [typeFilter2026, setTypeFilter2026] = useState<string>('all');
-  const [assignedToFilter2026, setAssignedToFilter2026] = useState<string>('all');
-  const [partnerFilter2026, setPartnerFilter2026] = useState<string>('all');
 
   const [airtableRecords, setAirtableRecords] = useState<AirtableRecord[]>([]);
   const [filteredAirtableRecords, setFilteredAirtableRecords] = useState<AirtableRecord[]>([]);
@@ -83,11 +71,28 @@ function App() {
   const handleSyncFromTypeform = async () => {
     setSyncing(true);
     try {
-      const result = await syncAllTypeformResponses();
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/sync-typeform-unified`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
 
       if (result.success) {
-        alert(`✅ Synchronisation terminée!\n\n📥 ${result.total_fetched} réponses récupérées\n✓ ${result.inserted} nouvelles\n↻ ${result.updated} mises à jour\n${result.errors > 0 ? `❌ ${result.errors} erreurs` : ''}`);
-
+        const totalInserted = result.totals?.inserted || 0;
+        const totalUpdated = result.totals?.updated || 0;
+        const totalErrors = result.totals?.errors || 0;
+        alert(`✅ Synchronisation terminée!\n\n✓ ${totalInserted} nouvelles réponses\n↻ ${totalUpdated} mises à jour\n${totalErrors > 0 ? `❌ ${totalErrors} erreurs` : ''}`);
         await fetchContacts();
         setLastUpdate(new Date());
       } else {
@@ -156,93 +161,6 @@ function App() {
     }
   };
 
-  const fetchContacts2026 = async () => {
-    try {
-      setError2026('');
-      setLoading2026(true);
-
-      const { data, error } = await supabase
-        .from('typeform_responses_2026')
-        .select('*')
-        .order('submitted_at', { ascending: false });
-
-      if (error) {
-        throw new Error(`Erreur Supabase: ${error.message}`);
-      }
-
-      const mappedContacts = (data || []).map((r: any) => ({
-        id: r.id,
-        typeform_response_id: r.response_id,
-        name: `${r.prenom || ''} ${r.nom || ''}`.trim() || 'Sans nom',
-        email: r.email || '',
-        phone: r.telephone || '',
-        company: r.entreprise || '',
-        address: r.address || '',
-        address_line2: r.address_line2 || '',
-        city: r.city || '',
-        state_region: r.state_region || '',
-        postal_code: r.postal_code || '',
-        country: r.country || '',
-        department: r.department || '',
-        requester_type: r.requester_type || '',
-        motif: r.motif || '',
-        message: r.message || '',
-        notes: r.notes || '',
-        status: r.status || 'new',
-        priority: r.priority || 'medium',
-        assigned_to: r.assigned_to || '',
-        partner: r.partner || '',
-        submitted_at: r.submitted_at,
-        created_at: r.created_at,
-      }));
-
-      setContacts2026(mappedContacts);
-      console.log(`Chargé ${mappedContacts.length} réponses Typeform 2026 depuis Supabase`);
-    } catch (error: any) {
-      console.error('Error fetching contacts 2026:', error);
-      setError2026(error.message || 'Erreur de chargement');
-    } finally {
-      setLoading2026(false);
-    }
-  };
-
-  const handleSync2026 = async () => {
-    setSyncing2026(true);
-    try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-      const response = await fetch(`${supabaseUrl}/functions/v1/sync-typeform-unified`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${supabaseAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
-        const totalInserted = result.totals?.inserted || 0;
-        const totalUpdated = result.totals?.updated || 0;
-        const totalErrors = result.totals?.errors || 0;
-        alert(`✅ Synchronisation terminée!\n\n✓ ${totalInserted} nouvelles réponses\n↻ ${totalUpdated} mises à jour\n${totalErrors > 0 ? `❌ ${totalErrors} erreurs` : ''}`);
-        await fetchContacts2026();
-        setLastUpdate(new Date());
-      } else {
-        throw new Error('La synchronisation a échoué');
-      }
-    } catch (error: any) {
-      console.error('Error syncing 2026:', error);
-      alert(`❌ Erreur de synchronisation Typeform 2026:\n\n${error.message}`);
-    } finally {
-      setSyncing2026(false);
-    }
-  };
 
   const syncToAirtable = async () => {
     const airtableToken = import.meta.env.VITE_AIRTABLE_TOKEN;
@@ -437,17 +355,6 @@ function App() {
       return () => {
         clearInterval(interval);
       };
-    } else if (activeTab === 'typeform2026') {
-      fetchContacts2026();
-
-      const interval = setInterval(() => {
-        fetchContacts2026();
-        setLastUpdate(new Date());
-      }, 3600000);
-
-      return () => {
-        clearInterval(interval);
-      };
     } else if (activeTab === 'airtable') {
       fetchAirtable();
 
@@ -494,37 +401,6 @@ function App() {
     setFilteredContacts(filtered);
   }, [contacts, statusFilter, priorityFilter, typeFilter, assignedToFilter, partnerFilter]);
 
-  useEffect(() => {
-    let filtered = [...contacts2026];
-
-    if (statusFilter2026 !== 'all') {
-      filtered = filtered.filter(c => c.status === statusFilter2026);
-    }
-
-    if (priorityFilter2026 !== 'all') {
-      filtered = filtered.filter(c => c.priority === priorityFilter2026);
-    }
-
-    if (typeFilter2026 !== 'all') {
-      filtered = filtered.filter(c => c.requester_type === typeFilter2026);
-    }
-
-    if (assignedToFilter2026 !== 'all') {
-      filtered = filtered.filter(c => c.assigned_to === assignedToFilter2026);
-    }
-
-    if (partnerFilter2026 !== 'all') {
-      filtered = filtered.filter(c => c.partner === partnerFilter2026);
-    }
-
-    filtered.sort((a, b) => {
-      const dateA = new Date(a.submitted_at).getTime();
-      const dateB = new Date(b.submitted_at).getTime();
-      return dateB - dateA;
-    });
-
-    setFilteredContacts2026(filtered);
-  }, [contacts2026, statusFilter2026, priorityFilter2026, typeFilter2026, assignedToFilter2026, partnerFilter2026]);
 
   useEffect(() => {
     let filtered = [...airtableRecords];
@@ -584,14 +460,6 @@ function App() {
     total: contacts.length,
   };
 
-  const stats2026 = {
-    new: contacts2026.filter(c => c.status === 'new').length,
-    to_contact: contacts2026.filter(c => c.status === 'to_contact').length,
-    qualified: contacts2026.filter(c => c.status === 'qualified').length,
-    out_of_criteria: contacts2026.filter(c => c.status === 'out_of_criteria').length,
-    to_relaunch: contacts2026.filter(c => c.status === 'to_relaunch').length,
-    total: contacts2026.length,
-  };
 
 
   return (
@@ -650,17 +518,6 @@ function App() {
                     {syncing ? 'Synchronisation...' : 'Pousser vers Airtable'}
                   </button>
                 </>
-              )}
-              {activeTab === 'typeform2026' && (
-                <button
-                  onClick={handleSync2026}
-                  disabled={syncing2026}
-                  className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 font-medium"
-                  title="Synchroniser toutes les réponses depuis Typeform 2026"
-                >
-                  <Download className={`w-5 h-5 ${syncing2026 ? 'animate-spin' : ''}`} />
-                  {syncing2026 ? 'Synchronisation...' : 'Sync Typeform 2026'}
-                </button>
               )}
               {activeTab === 'airtable' && (
                 <button
@@ -932,158 +789,6 @@ function App() {
           </>
         )}
 
-        {activeTab === 'typeform2026' && (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-              <StatsCard title="Nouveaux" value={stats2026.new} icon={Inbox} color="blue" />
-              <StatsCard title="A contacter" value={stats2026.to_contact} icon={Bell} color="blue" />
-              <StatsCard title="A relancer" value={stats2026.to_relaunch} icon={Clock} color="yellow" />
-              <StatsCard title="Qualifiés" value={stats2026.qualified} icon={CheckCircle} color="blue" />
-              <StatsCard title="Hors Critères" value={stats2026.out_of_criteria} icon={Trash2} color="red" />
-              <StatsCard title="Total" value={stats2026.total} icon={Archive} color="gray" />
-            </div>
-
-            <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-              <div className="flex items-center gap-2 mb-3">
-                <Filter className="w-5 h-5 text-gray-600" />
-                <h3 className="font-medium text-gray-900">Filtres - Typeform 2026</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Statut
-                  </label>
-                  <select
-                    value={statusFilter2026}
-                    onChange={(e) => setStatusFilter2026(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="all">Tous les statuts</option>
-                    <option value="new">Nouveau</option>
-                    <option value="to_contact">A contacter</option>
-                    <option value="qualified">Qualifié</option>
-                    <option value="out_of_criteria">Hors Critères</option>
-                    <option value="to_relaunch">A relancer</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Priorité
-                  </label>
-                  <select
-                    value={priorityFilter2026}
-                    onChange={(e) => setPriorityFilter2026(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="all">Toutes les priorités</option>
-                    <option value="high">Haute</option>
-                    <option value="medium">Moyenne</option>
-                    <option value="low">Basse</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Type de demandeur
-                  </label>
-                  <select
-                    value={typeFilter2026}
-                    onChange={(e) => setTypeFilter2026(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="all">Tous les types</option>
-                    <option value="Un particulier">Un particulier</option>
-                    <option value="Un installateur">Un installateur</option>
-                    <option value="Une entreprise">Une entreprise</option>
-                    <option value="Une collectivité">Une collectivité</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Assigné à
-                  </label>
-                  <select
-                    value={assignedToFilter2026}
-                    onChange={(e) => setAssignedToFilter2026(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="all">Tous les collaborateurs</option>
-                    {rhCollaborators.map(collaborator => (
-                      <option key={collaborator.id} value={collaborator.name}>{collaborator.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Partenaire
-                  </label>
-                  <select
-                    value={partnerFilter2026}
-                    onChange={(e) => setPartnerFilter2026(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="all">Tous les partenaires</option>
-                    {Array.from(new Set(contacts2026.map(c => c.partner).filter(Boolean))).sort().map(name => (
-                      <option key={name} value={name}>{name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {error2026 && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0">
-                    <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-medium text-red-800">Erreur de synchronisation</h3>
-                    <p className="text-sm text-red-700 mt-1">{error2026}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {loading2026 ? (
-              <div className="text-center py-12">
-                <RefreshCw className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-                <p className="text-gray-600">Chargement des demandes Typeform 2026...</p>
-              </div>
-            ) : filteredContacts2026.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-                <Inbox className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Aucune demande trouvée
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  {contacts2026.length === 0
-                    ? 'Aucune réponse trouvée dans votre formulaire Typeform 2026'
-                    : 'Aucune demande ne correspond aux filtres sélectionnés'}
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredContacts2026.map((contact) => (
-                  <ContactCard
-                    key={contact.id}
-                    contact={contact}
-                    onClick={() => setSelectedContact2026(contact)}
-                  />
-                ))}
-              </div>
-            )}
-
-            {selectedContact2026 && (
-              <ContactModal
-                contact={selectedContact2026}
-                onClose={() => setSelectedContact2026(null)}
-                onUpdate={fetchContacts2026}
-              />
-            )}
-          </>
-        )}
 
         {activeTab === 'airtable' && (
           <>
