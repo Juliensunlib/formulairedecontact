@@ -605,7 +605,7 @@ function App() {
                       <option value="Un installateur">Un installateur</option>
                       <option value="Une entreprise">Une entreprise</option>
                       <option value="Une collectivité">Une collectivité</option>
-                      <option value="Abonné">Abonné</option>
+                      <option value="Abonné SunLib">Abonné SunLib</option>
                     </select>
                   </div>
                   <div>
