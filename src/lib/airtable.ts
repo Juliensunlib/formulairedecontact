@@ -62,21 +62,30 @@ export async function fetchAirtableRecords(): Promise<AirtableRecord[]> {
     throw new Error('Configuration Airtable manquante');
   }
 
-  const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}`;
+  const baseUrl = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}`;
+  const allRecords: AirtableRecord[] = [];
+  let offset: string | undefined;
 
-  const response = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
+  do {
+    const url = offset ? `${baseUrl}?offset=${encodeURIComponent(offset)}` : baseUrl;
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Erreur Airtable: ${response.status} - ${errorText}`);
-  }
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
 
-  const data: AirtableResponse = await response.json();
-  return data.records;
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Erreur Airtable: ${response.status} - ${errorText}`);
+    }
+
+    const data: AirtableResponse = await response.json();
+    allRecords.push(...data.records);
+    offset = data.offset;
+  } while (offset);
+
+  return allRecords;
 }
 
 export async function updateAirtableRecord(
