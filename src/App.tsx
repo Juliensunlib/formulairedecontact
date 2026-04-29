@@ -602,16 +602,6 @@ function App() {
 
           {activeTab === 'typeform' && (
             <>
-              {/* Stats cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
-                <StatsCard title="Nouveaux" value={stats.new} icon={Inbox} color="green" />
-                <StatsCard title="A contacter" value={stats.to_contact} icon={Bell} color="blue" />
-                <StatsCard title="A relancer" value={stats.to_relaunch} icon={Clock} color="yellow" />
-                <StatsCard title="Qualifiés" value={stats.qualified} icon={CheckCircle} color="green" />
-                <StatsCard title="Hors Critères" value={stats.out_of_criteria} icon={Trash2} color="red" />
-                <StatsCard title="Total" value={stats.total} icon={Archive} color="gray" />
-              </div>
-
               {/* Date range */}
               <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
                 <div className="flex items-center gap-2 mb-3">
@@ -652,6 +642,16 @@ function App() {
                     </button>
                   )}
                 </div>
+              </div>
+
+              {/* Stats cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
+                <StatsCard title="Nouveaux" value={stats.new} icon={Inbox} color="green" />
+                <StatsCard title="A contacter" value={stats.to_contact} icon={Bell} color="blue" />
+                <StatsCard title="A relancer" value={stats.to_relaunch} icon={Clock} color="yellow" />
+                <StatsCard title="Qualifiés" value={stats.qualified} icon={CheckCircle} color="green" />
+                <StatsCard title="Hors Critères" value={stats.out_of_criteria} icon={Trash2} color="red" />
+                <StatsCard title="Total" value={stats.total} icon={Archive} color="gray" />
               </div>
 
               {/* Other filters */}
@@ -765,16 +765,6 @@ function App() {
 
           {activeTab === 'airtable' && (
             <>
-              {/* Airtable stats */}
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
-                <StatsCard title="Nouveaux" value={airtableStats.new} icon={Inbox} color="green" />
-                <StatsCard title="A contacter" value={airtableStats.to_contact} icon={Bell} color="blue" />
-                <StatsCard title="A relancer" value={airtableStats.to_relaunch} icon={Clock} color="yellow" />
-                <StatsCard title="Qualifiés" value={airtableStats.qualified} icon={CheckCircle} color="green" />
-                <StatsCard title="Hors Critères" value={airtableStats.out_of_criteria} icon={Trash2} color="red" />
-                <StatsCard title="Total" value={airtableStats.total} icon={Archive} color="gray" />
-              </div>
-
               {/* Airtable date range */}
               <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
                 <div className="flex items-center gap-2 mb-3">
@@ -815,6 +805,16 @@ function App() {
                     </button>
                   )}
                 </div>
+              </div>
+
+              {/* Airtable stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
+                <StatsCard title="Nouveaux" value={airtableStats.new} icon={Inbox} color="green" />
+                <StatsCard title="A contacter" value={airtableStats.to_contact} icon={Bell} color="blue" />
+                <StatsCard title="A relancer" value={airtableStats.to_relaunch} icon={Clock} color="yellow" />
+                <StatsCard title="Qualifiés" value={airtableStats.qualified} icon={CheckCircle} color="green" />
+                <StatsCard title="Hors Critères" value={airtableStats.out_of_criteria} icon={Trash2} color="red" />
+                <StatsCard title="Total" value={airtableStats.total} icon={Archive} color="gray" />
               </div>
 
               {/* Airtable other filters */}
