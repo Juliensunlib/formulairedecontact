@@ -34,6 +34,7 @@ export function AirtableCard({ record, onClick, rhCollaborators }: AirtableCardP
   const postalCode = record.fields['Zip/Post Code'] as string;
   const address = record.fields['Address'] as string;
   const submittedAt = record.fields['Submit Date (UTC)'] as string;
+  const createdAt = record.fields['Date création'] as string;
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
@@ -125,7 +126,7 @@ export function AirtableCard({ record, onClick, rhCollaborators }: AirtableCardP
       <div className="flex items-center justify-between pt-3 border-t border-gray-100">
         <div className="flex items-center text-xs text-gray-500">
           <Calendar className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
-          <span>{formatDate(submittedAt || record.createdTime)}</span>
+          <span>{formatDate(createdAt || submittedAt || record.createdTime)}</span>
         </div>
         {partner && (
           <div className="flex items-center text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-200">
