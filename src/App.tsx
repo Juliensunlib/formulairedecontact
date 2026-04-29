@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, Filter, Inbox, Clock, CheckCircle, Archive, Sun, Bell, Trash2, X, Database, Download, Search } from 'lucide-react';
+import { RefreshCw, Filter, Inbox, Clock, CheckCircle, Archive, Sun, Bell, Trash2, X, Database, Download, Search, CalendarRange } from 'lucide-react';
 import { ContactRequest, supabase } from './lib/supabase';
 import { AirtableRecord, fetchAirtableRecords, fetchRHCollaborators, RHCollaborator } from './lib/airtable';
 import { fetchTypeformResponsesFromSupabase, syncAllTypeformResponses } from './lib/typeform-supabase';
@@ -27,14 +27,8 @@ function App() {
   const [airtableAssignedToFilter, setAirtableAssignedToFilter] = useState<string>('all');
   const [airtablePartnerFilter, setAirtablePartnerFilter] = useState<string>('all');
   const [airtableCustomerTypeFilter, setAirtableCustomerTypeFilter] = useState<string>('all');
-  const [airtableStats, setAirtableStats] = useState({
-    new: 0,
-    to_contact: 0,
-    qualified: 0,
-    out_of_criteria: 0,
-    to_relaunch: 0,
-    total: 0,
-  });
+  const [airtableDateFrom, setAirtableDateFrom] = useState<string>('');
+  const [airtableDateTo, setAirtableDateTo] = useState<string>('');
 
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -45,6 +39,8 @@ function App() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [assignedToFilter, setAssignedToFilter] = useState<string>('all');
   const [partnerFilter, setPartnerFilter] = useState<string>('all');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [newContactsCount, setNewContactsCount] = useState(0);
   const formId = import.meta.env.VITE_TYPEFORM_FORM_ID || '';
@@ -114,7 +110,6 @@ function App() {
     try {
       const records = await fetchAirtableRecords();
       setAirtableRecords(records);
-      await calculateAirtableStats(records);
     } catch (error: any) {
       console.error('Error fetching Airtable:', error);
       setAirtableError(error.message || 'Erreur de chargement Airtable');
@@ -122,33 +117,6 @@ function App() {
       setAirtableLoading(false);
     }
   };
-
-  const calculateAirtableStats = async (records: AirtableRecord[]) => {
-    try {
-      const stats = {
-        new: 0,
-        to_contact: 0,
-        qualified: 0,
-        out_of_criteria: 0,
-        to_relaunch: 0,
-        total: records.length,
-      };
-
-      records.forEach(record => {
-        const status = (record.fields['Statut'] as string) || 'Nouveau';
-        if (status === 'Nouveau') stats.new++;
-        else if (status === 'A contacter') stats.to_contact++;
-        else if (status === 'Qualifié') stats.qualified++;
-        else if (status === 'Hors Critères') stats.out_of_criteria++;
-        else if (status === 'A relancer') stats.to_relaunch++;
-      });
-
-      setAirtableStats(stats);
-    } catch (error) {
-      console.error('Error calculating stats:', error);
-    }
-  };
-
 
   const syncAirtable = async () => {
     setSyncing(true);
@@ -162,7 +130,6 @@ function App() {
       setSyncing(false);
     }
   };
-
 
   const syncToAirtable = async () => {
     const airtableToken = import.meta.env.VITE_AIRTABLE_TOKEN;
@@ -374,6 +341,18 @@ function App() {
   useEffect(() => {
     let filtered = [...contacts];
 
+    if (dateFrom) {
+      const from = new Date(dateFrom);
+      from.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(c => new Date(c.submitted_at) >= from);
+    }
+
+    if (dateTo) {
+      const to = new Date(dateTo);
+      to.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(c => new Date(c.submitted_at) <= to);
+    }
+
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
       filtered = filtered.filter(c => {
@@ -409,17 +388,39 @@ function App() {
     });
 
     setFilteredContacts(filtered);
-  }, [contacts, searchQuery, statusFilter, priorityFilter, typeFilter, assignedToFilter, partnerFilter]);
+  }, [contacts, searchQuery, statusFilter, priorityFilter, typeFilter, assignedToFilter, partnerFilter, dateFrom, dateTo]);
 
 
   useEffect(() => {
     let filtered = [...airtableRecords];
 
+    if (airtableDateFrom) {
+      const from = new Date(airtableDateFrom);
+      from.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(r => {
+        const recordDate = r.fields['Submit Date (UTC)']
+          ? new Date(r.fields['Submit Date (UTC)'] as string)
+          : new Date(r.createdTime);
+        return recordDate >= from;
+      });
+    }
+
+    if (airtableDateTo) {
+      const to = new Date(airtableDateTo);
+      to.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(r => {
+        const recordDate = r.fields['Submit Date (UTC)']
+          ? new Date(r.fields['Submit Date (UTC)'] as string)
+          : new Date(r.createdTime);
+        return recordDate <= to;
+      });
+    }
+
     if (airtableSearchQuery.trim()) {
       const q = airtableSearchQuery.trim().toLowerCase();
       filtered = filtered.filter(r => {
-        const firstName = (r.fields['First name'] as string || '').toLowerCase();
-        const lastName = (r.fields['Last name'] as string || '').toLowerCase();
+        const firstName = ((r.fields['Prénom'] || r.fields['First name']) as string || '').toLowerCase();
+        const lastName = ((r.fields['Nom'] || r.fields['Last name']) as string || '').toLowerCase();
         const email = (r.fields['Email'] as string || '').toLowerCase();
         const company = (r.fields['Company'] as string || '').toLowerCase();
         return `${firstName} ${lastName}`.includes(q) || email.includes(q) || company.includes(q);
@@ -446,13 +447,7 @@ function App() {
     if (airtablePartnerFilter !== 'all') {
       filtered = filtered.filter(r => {
         const partner = r.fields['Partenaire'] as string;
-        const normalizedPartner = partner?.trim() || '';
-        const normalizedFilter = airtablePartnerFilter.trim();
-        const matches = normalizedPartner === normalizedFilter;
-        if (!matches && normalizedPartner) {
-          console.log(`Partenaire non trouvé - Record: "${normalizedPartner}" vs Filter: "${normalizedFilter}"`);
-        }
-        return matches;
+        return (partner?.trim() || '') === airtablePartnerFilter.trim();
       });
     }
 
@@ -470,18 +465,60 @@ function App() {
     });
 
     setFilteredAirtableRecords(filtered);
-  }, [airtableRecords, airtableSearchQuery, airtableStatusFilter, airtableAssignedToFilter, airtablePartnerFilter, airtableCustomerTypeFilter, rhCollaborators]);
+  }, [airtableRecords, airtableSearchQuery, airtableStatusFilter, airtableAssignedToFilter, airtablePartnerFilter, airtableCustomerTypeFilter, rhCollaborators, airtableDateFrom, airtableDateTo]);
+
+  // Stats calculées sur les données filtrées par date uniquement (hors autres filtres)
+  const dateFilteredContacts = contacts.filter(c => {
+    if (dateFrom) {
+      const from = new Date(dateFrom);
+      from.setHours(0, 0, 0, 0);
+      if (new Date(c.submitted_at) < from) return false;
+    }
+    if (dateTo) {
+      const to = new Date(dateTo);
+      to.setHours(23, 59, 59, 999);
+      if (new Date(c.submitted_at) > to) return false;
+    }
+    return true;
+  });
 
   const stats = {
-    new: contacts.filter(c => c.status === 'new').length,
-    to_contact: contacts.filter(c => c.status === 'to_contact').length,
-    qualified: contacts.filter(c => c.status === 'qualified').length,
-    out_of_criteria: contacts.filter(c => c.status === 'out_of_criteria').length,
-    to_relaunch: contacts.filter(c => c.status === 'to_relaunch').length,
-    total: contacts.length,
+    new: dateFilteredContacts.filter(c => c.status === 'new').length,
+    to_contact: dateFilteredContacts.filter(c => c.status === 'to_contact').length,
+    qualified: dateFilteredContacts.filter(c => c.status === 'qualified').length,
+    out_of_criteria: dateFilteredContacts.filter(c => c.status === 'out_of_criteria').length,
+    to_relaunch: dateFilteredContacts.filter(c => c.status === 'to_relaunch').length,
+    total: dateFilteredContacts.length,
   };
 
+  const dateFilteredAirtable = airtableRecords.filter(r => {
+    const recordDate = r.fields['Submit Date (UTC)']
+      ? new Date(r.fields['Submit Date (UTC)'] as string)
+      : new Date(r.createdTime);
+    if (airtableDateFrom) {
+      const from = new Date(airtableDateFrom);
+      from.setHours(0, 0, 0, 0);
+      if (recordDate < from) return false;
+    }
+    if (airtableDateTo) {
+      const to = new Date(airtableDateTo);
+      to.setHours(23, 59, 59, 999);
+      if (recordDate > to) return false;
+    }
+    return true;
+  });
 
+  const airtableStats = {
+    new: dateFilteredAirtable.filter(r => (r.fields['Statut'] as string) === 'Nouveau').length,
+    to_contact: dateFilteredAirtable.filter(r => (r.fields['Statut'] as string) === 'A contacter').length,
+    qualified: dateFilteredAirtable.filter(r => (r.fields['Statut'] as string) === 'Qualifié').length,
+    out_of_criteria: dateFilteredAirtable.filter(r => (r.fields['Statut'] as string) === 'Hors Critères').length,
+    to_relaunch: dateFilteredAirtable.filter(r => (r.fields['Statut'] as string) === 'A relancer').length,
+    total: dateFilteredAirtable.length,
+  };
+
+  const hasDateFilter = dateFrom || dateTo;
+  const hasAirtableDateFilter = airtableDateFrom || airtableDateTo;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-gray-50">
@@ -565,7 +602,8 @@ function App() {
 
           {activeTab === 'typeform' && (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+              {/* Stats cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
                 <StatsCard title="Nouveaux" value={stats.new} icon={Inbox} color="green" />
                 <StatsCard title="A contacter" value={stats.to_contact} icon={Bell} color="blue" />
                 <StatsCard title="A relancer" value={stats.to_relaunch} icon={Clock} color="yellow" />
@@ -574,6 +612,49 @@ function App() {
                 <StatsCard title="Total" value={stats.total} icon={Archive} color="gray" />
               </div>
 
+              {/* Date range */}
+              <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <CalendarRange className="w-5 h-5 text-green-600" />
+                  <h3 className="font-medium text-gray-900">Période</h3>
+                  {hasDateFilter && (
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                      {stats.total} résultat{stats.total > 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-end gap-4">
+                  <div className="flex-1 min-w-[160px]">
+                    <label className="block text-sm font-medium text-gray-600 mb-1.5">Du</label>
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-[160px]">
+                    <label className="block text-sm font-medium text-gray-600 mb-1.5">Au</label>
+                    <input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                    />
+                  </div>
+                  {hasDateFilter && (
+                    <button
+                      onClick={() => { setDateFrom(''); setDateTo(''); }}
+                      className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                      Effacer
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Other filters */}
               <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
                 <div className="flex items-center gap-2 mb-3">
                   <Filter className="w-5 h-5 text-gray-600" />
@@ -683,96 +764,151 @@ function App() {
           )}
 
           {activeTab === 'airtable' && (
-            <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Filter className="w-5 h-5 text-gray-600" />
-                <h3 className="font-medium text-gray-900">Filtres - Leads Solaires</h3>
+            <>
+              {/* Airtable stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
+                <StatsCard title="Nouveaux" value={airtableStats.new} icon={Inbox} color="green" />
+                <StatsCard title="A contacter" value={airtableStats.to_contact} icon={Bell} color="blue" />
+                <StatsCard title="A relancer" value={airtableStats.to_relaunch} icon={Clock} color="yellow" />
+                <StatsCard title="Qualifiés" value={airtableStats.qualified} icon={CheckCircle} color="green" />
+                <StatsCard title="Hors Critères" value={airtableStats.out_of_criteria} icon={Trash2} color="red" />
+                <StatsCard title="Total" value={airtableStats.total} icon={Archive} color="gray" />
               </div>
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Rechercher par nom, email ou entreprise..."
-                  value={airtableSearchQuery}
-                  onChange={(e) => setAirtableSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
-                />
-                {airtableSearchQuery && (
-                  <button
-                    onClick={() => setAirtableSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Statut
-                  </label>
-                  <select
-                    value={airtableStatusFilter}
-                    onChange={(e) => setAirtableStatusFilter(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  >
-                    <option value="all">Tous les statuts</option>
-                    <option value="Nouveau">Nouveau</option>
-                    <option value="A contacter">A contacter</option>
-                    <option value="Qualifié">Qualifié</option>
-                    <option value="Hors Critères">Hors Critères</option>
-                    <option value="A relancer">A relancer</option>
-                  </select>
+
+              {/* Airtable date range */}
+              <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <CalendarRange className="w-5 h-5 text-green-600" />
+                  <h3 className="font-medium text-gray-900">Période</h3>
+                  {hasAirtableDateFilter && (
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                      {airtableStats.total} résultat{airtableStats.total > 1 ? 's' : ''}
+                    </span>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Type de client
-                  </label>
-                  <select
-                    value={airtableCustomerTypeFilter}
-                    onChange={(e) => setAirtableCustomerTypeFilter(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  >
-                    <option value="all">Tous les types</option>
-                    <option value="Particulier">Particulier</option>
-                    <option value="Entreprise">Entreprise</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Assigné à
-                  </label>
-                  <select
-                    value={airtableAssignedToFilter}
-                    onChange={(e) => setAirtableAssignedToFilter(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  >
-                    <option value="all">Tous les collaborateurs</option>
-                    {rhCollaborators.map(collaborator => (
-                      <option key={collaborator.id} value={collaborator.name}>{collaborator.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Partenaire
-                  </label>
-                  <select
-                    value={airtablePartnerFilter}
-                    onChange={(e) => setAirtablePartnerFilter(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  >
-                    <option value="all">Tous les partenaires</option>
-                    {Array.from(new Set(airtableRecords.map(r => {
-                      const partner = r.fields['Partenaire'] as string;
-                      return partner?.trim();
-                    }).filter(Boolean))).sort().map(name => (
-                      <option key={name} value={name}>{name}</option>
-                    ))}
-                  </select>
+                <div className="flex flex-wrap items-end gap-4">
+                  <div className="flex-1 min-w-[160px]">
+                    <label className="block text-sm font-medium text-gray-600 mb-1.5">Du</label>
+                    <input
+                      type="date"
+                      value={airtableDateFrom}
+                      onChange={(e) => setAirtableDateFrom(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-[160px]">
+                    <label className="block text-sm font-medium text-gray-600 mb-1.5">Au</label>
+                    <input
+                      type="date"
+                      value={airtableDateTo}
+                      onChange={(e) => setAirtableDateTo(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                    />
+                  </div>
+                  {hasAirtableDateFilter && (
+                    <button
+                      onClick={() => { setAirtableDateFrom(''); setAirtableDateTo(''); }}
+                      className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                      Effacer
+                    </button>
+                  )}
                 </div>
               </div>
-            </div>
+
+              {/* Airtable other filters */}
+              <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Filter className="w-5 h-5 text-gray-600" />
+                  <h3 className="font-medium text-gray-900">Filtres - Leads Solaires</h3>
+                </div>
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Rechercher par nom, email ou entreprise..."
+                    value={airtableSearchQuery}
+                    onChange={(e) => setAirtableSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                  />
+                  {airtableSearchQuery && (
+                    <button
+                      onClick={() => setAirtableSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Statut
+                    </label>
+                    <select
+                      value={airtableStatusFilter}
+                      onChange={(e) => setAirtableStatusFilter(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    >
+                      <option value="all">Tous les statuts</option>
+                      <option value="Nouveau">Nouveau</option>
+                      <option value="A contacter">A contacter</option>
+                      <option value="Qualifié">Qualifié</option>
+                      <option value="Hors Critères">Hors Critères</option>
+                      <option value="A relancer">A relancer</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Type de client
+                    </label>
+                    <select
+                      value={airtableCustomerTypeFilter}
+                      onChange={(e) => setAirtableCustomerTypeFilter(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    >
+                      <option value="all">Tous les types</option>
+                      <option value="Particulier">Particulier</option>
+                      <option value="Entreprise">Entreprise</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Assigné à
+                    </label>
+                    <select
+                      value={airtableAssignedToFilter}
+                      onChange={(e) => setAirtableAssignedToFilter(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    >
+                      <option value="all">Tous les collaborateurs</option>
+                      {rhCollaborators.map(collaborator => (
+                        <option key={collaborator.id} value={collaborator.name}>{collaborator.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Partenaire
+                    </label>
+                    <select
+                      value={airtablePartnerFilter}
+                      onChange={(e) => setAirtablePartnerFilter(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    >
+                      <option value="all">Tous les partenaires</option>
+                      {Array.from(new Set(airtableRecords.map(r => {
+                        const partner = r.fields['Partenaire'] as string;
+                        return partner?.trim();
+                      }).filter(Boolean))).sort().map(name => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </div>
 
@@ -850,15 +986,6 @@ function App() {
 
         {activeTab === 'airtable' && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-              <StatsCard title="Nouveaux" value={airtableStats.new} icon={Inbox} color="green" />
-              <StatsCard title="A contacter" value={airtableStats.to_contact} icon={Bell} color="blue" />
-              <StatsCard title="A relancer" value={airtableStats.to_relaunch} icon={Clock} color="yellow" />
-              <StatsCard title="Qualifiés" value={airtableStats.qualified} icon={CheckCircle} color="green" />
-              <StatsCard title="Hors Critères" value={airtableStats.out_of_criteria} icon={Trash2} color="red" />
-              <StatsCard title="Total" value={airtableStats.total} icon={Archive} color="gray" />
-            </div>
-
             {airtableError && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
                 <div className="flex items-start gap-3">
@@ -929,12 +1056,12 @@ function App() {
               </div>
 
               <div className="space-y-4">
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                  <h3 className="font-medium text-purple-900 mb-2">IMPORTANT : Développement Local vs Vercel</h3>
-                  <div className="text-sm text-purple-800 space-y-2">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="font-medium text-blue-900 mb-2">IMPORTANT : Développement Local vs Vercel</h3>
+                  <div className="text-sm text-blue-800 space-y-2">
                     <p><strong>Sur Vercel (Production) :</strong> Variables dans Vercel → Settings → Environment Variables</p>
-                    <p><strong>En local (Développement) :</strong> Variables dans le fichier <code className="bg-purple-100 px-1 rounded">.env</code> à la racine du projet</p>
-                    <p className="font-semibold text-purple-900 mt-2">Ces deux endroits sont SÉPARÉS ! Pour que ça fonctionne en local, copiez vos variables Vercel dans le fichier .env</p>
+                    <p><strong>En local (Développement) :</strong> Variables dans le fichier <code className="bg-blue-100 px-1 rounded">.env</code> à la racine du projet</p>
+                    <p className="font-semibold text-blue-900 mt-2">Ces deux endroits sont SÉPARÉS ! Pour que ça fonctionne en local, copiez vos variables Vercel dans le fichier .env</p>
                   </div>
                 </div>
 
