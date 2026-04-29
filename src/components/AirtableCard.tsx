@@ -39,10 +39,8 @@ export function AirtableCard({ record, onClick, rhCollaborators }: AirtableCardP
     if (!dateString) return '';
     return new Date(dateString).toLocaleDateString('fr-FR', {
       day: '2-digit',
-      month: 'long',
+      month: 'short',
       year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     });
   };
 
@@ -126,8 +124,8 @@ export function AirtableCard({ record, onClick, rhCollaborators }: AirtableCardP
 
       <div className="flex items-center justify-between pt-3 border-t border-gray-100">
         <div className="flex items-center text-xs text-gray-500">
-          <Calendar className="w-3.5 h-3.5 mr-1" />
-          {formatDate(submittedAt)}
+          <Calendar className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
+          <span>{formatDate(submittedAt || record.createdTime)}</span>
         </div>
         {partner && (
           <div className="flex items-center text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-200">
