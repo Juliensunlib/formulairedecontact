@@ -24,16 +24,14 @@ export function AirtableCard({ record, onClick, rhCollaborators }: AirtableCardP
   const partner = record.fields['Partenaire'] as string;
   const customerType = record.fields['Type de client'] as string;
 
-  const formatValue = (value: any): string => {
-    if (value === null || value === undefined) return '-';
-    if (Array.isArray(value)) return value.join(', ');
-    if (typeof value === 'object') return JSON.stringify(value);
-    if (typeof value === 'boolean') return value ? 'Oui' : 'Non';
-    return String(value);
-  };
-
-  const fields = Object.entries(record.fields).filter(([key]) => key !== 'RH' && key !== 'Partenaire');
-  const displayFields = fields.slice(0, 6);
+  const firstName = record.fields['First name'] as string || '';
+  const lastName = record.fields['Last name'] as string || '';
+  const fullName = [firstName, lastName].filter(Boolean).join(' ') || '-';
+  const email = record.fields['Email'] as string || '';
+  const phone = record.fields['Phone number'] as string || '';
+  const city = record.fields['City/Town'] as string || '';
+  const motif = record.fields['Séléctionnez un motif'] as string || '';
+  const submittedAt = record.fields['Submit Date (UTC)'] as string;
 
   return (
     <div
@@ -47,7 +45,7 @@ export function AirtableCard({ record, onClick, rhCollaborators }: AirtableCardP
           {customerType && (
             <div className={`flex items-center text-sm px-3 py-1.5 rounded w-fit ${
               customerType === 'Particulier'
-                ? 'text-purple-700 bg-purple-50'
+                ? 'text-teal-700 bg-teal-50'
                 : 'text-orange-700 bg-orange-50'
             }`}>
               {customerType === 'Particulier' ? (
@@ -60,7 +58,34 @@ export function AirtableCard({ record, onClick, rhCollaborators }: AirtableCardP
           )}
         </div>
       </div>
-      <div className="flex flex-wrap gap-2 mb-3">
+
+      <div className="mb-3">
+        <div className="flex items-center gap-2 mb-0.5">
+          <User className="w-4 h-4 text-gray-400 shrink-0" />
+          <span className="text-base font-semibold text-gray-900 truncate">{fullName}</span>
+        </div>
+        {email && <p className="text-sm text-gray-500 truncate pl-6">{email}</p>}
+      </div>
+
+      <div className="space-y-1.5 mb-3">
+        {phone && (
+          <div className="text-sm text-gray-600 truncate">
+            <span className="font-medium text-gray-500">Tel :</span> {phone}
+          </div>
+        )}
+        {city && (
+          <div className="text-sm text-gray-600 truncate">
+            <span className="font-medium text-gray-500">Ville :</span> {city}
+          </div>
+        )}
+        {motif && (
+          <div className="text-sm text-gray-600 truncate">
+            <span className="font-medium text-gray-500">Motif :</span> {motif}
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-2">
         {assignedTo && (
           <div className="flex items-center text-sm text-green-700 bg-green-50 px-3 py-1.5 rounded w-fit">
             <User className="w-4 h-4 mr-1.5" />
@@ -74,23 +99,12 @@ export function AirtableCard({ record, onClick, rhCollaborators }: AirtableCardP
           </div>
         )}
       </div>
-      <div className="space-y-3">
-        {displayFields.map(([key, value]) => (
-          <div key={key} className="border-b border-gray-100 pb-2 last:border-0">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-              {key}
-            </div>
-            <div className="text-sm text-gray-900 font-medium truncate">
-              {formatValue(value)}
-            </div>
-          </div>
-        ))}
-        {fields.length > 6 && (
-          <div className="text-xs text-gray-500 italic">
-            +{fields.length - 6} champs supplémentaires
-          </div>
-        )}
-      </div>
+
+      {submittedAt && (
+        <div className="text-xs text-gray-400 mt-2">
+          {new Date(submittedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+        </div>
+      )}
     </div>
   );
 }
