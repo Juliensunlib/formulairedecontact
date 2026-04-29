@@ -139,7 +139,12 @@ export function AirtableModal({ record, onClose, onUpdate }: AirtableModalProps)
       <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-gradient-to-r from-green-600 to-green-700 text-white p-6 flex items-center justify-between rounded-t-xl z-10">
           <div>
-            <h2 className="text-2xl font-bold">Détails du lead Airtable</h2>
+            <h2 className="text-2xl font-bold">
+              {[
+                record.fields['Prénom'] || record.fields['First name'],
+                record.fields['Nom'] || record.fields['Last name']
+              ].filter(Boolean).join(' ') || 'Sans nom'}
+            </h2>
             <p className="text-sm text-green-100 mt-1">
               Créé le {formatDate(record.createdTime)}
             </p>

@@ -21,8 +21,8 @@ export function AirtableCard({ record, onClick, rhCollaborators }: AirtableCardP
       }).join(', ')
     : (record.fields['Assigné à'] as string) || '';
 
-  const firstName = (record.fields['First name'] as string) || '';
-  const lastName = (record.fields['Last name'] as string) || '';
+  const firstName = (record.fields['Prénom'] as string) || (record.fields['First name'] as string) || '';
+  const lastName = (record.fields['Nom'] as string) || (record.fields['Last name'] as string) || '';
   const fullName = [firstName, lastName].filter(Boolean).join(' ') || 'Sans nom';
   const email = record.fields['Email'] as string;
   const phone = record.fields['Phone number'] as string;
