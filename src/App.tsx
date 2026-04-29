@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, Filter, Inbox, Clock, CheckCircle, Archive, Sun, Bell, Trash2, X, Database, Download } from 'lucide-react';
+import { RefreshCw, Filter, Inbox, Clock, CheckCircle, Archive, Sun, Bell, Trash2, X, Database, Download, Search } from 'lucide-react';
 import { ContactRequest, supabase } from './lib/supabase';
 import { AirtableRecord, fetchAirtableRecords, fetchRHCollaborators, RHCollaborator } from './lib/airtable';
 import { fetchTypeformResponsesFromSupabase, syncAllTypeformResponses } from './lib/typeform-supabase';
@@ -38,6 +38,8 @@ function App() {
 
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [airtableSearchQuery, setAirtableSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -372,6 +374,14 @@ function App() {
   useEffect(() => {
     let filtered = [...contacts];
 
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      filtered = filtered.filter(c => {
+        const fullName = `${c.prenom || ''} ${c.nom || ''} ${c.name || ''}`.toLowerCase();
+        return fullName.includes(q) || (c.email || '').toLowerCase().includes(q) || (c.company || '').toLowerCase().includes(q);
+      });
+    }
+
     if (statusFilter !== 'all') {
       filtered = filtered.filter(c => c.status === statusFilter);
     }
@@ -399,11 +409,22 @@ function App() {
     });
 
     setFilteredContacts(filtered);
-  }, [contacts, statusFilter, priorityFilter, typeFilter, assignedToFilter, partnerFilter]);
+  }, [contacts, searchQuery, statusFilter, priorityFilter, typeFilter, assignedToFilter, partnerFilter]);
 
 
   useEffect(() => {
     let filtered = [...airtableRecords];
+
+    if (airtableSearchQuery.trim()) {
+      const q = airtableSearchQuery.trim().toLowerCase();
+      filtered = filtered.filter(r => {
+        const firstName = (r.fields['First name'] as string || '').toLowerCase();
+        const lastName = (r.fields['Last name'] as string || '').toLowerCase();
+        const email = (r.fields['Email'] as string || '').toLowerCase();
+        const company = (r.fields['Company'] as string || '').toLowerCase();
+        return `${firstName} ${lastName}`.includes(q) || email.includes(q) || company.includes(q);
+      });
+    }
 
     if (airtableStatusFilter !== 'all') {
       filtered = filtered.filter(r => (r.fields['Statut'] as string) === airtableStatusFilter);
@@ -449,7 +470,7 @@ function App() {
     });
 
     setFilteredAirtableRecords(filtered);
-  }, [airtableRecords, airtableStatusFilter, airtableAssignedToFilter, airtablePartnerFilter, airtableCustomerTypeFilter, rhCollaborators]);
+  }, [airtableRecords, airtableSearchQuery, airtableStatusFilter, airtableAssignedToFilter, airtablePartnerFilter, airtableCustomerTypeFilter, rhCollaborators]);
 
   const stats = {
     new: contacts.filter(c => c.status === 'new').length,
@@ -558,6 +579,24 @@ function App() {
                   <Filter className="w-5 h-5 text-gray-600" />
                   <h3 className="font-medium text-gray-900">Filtres</h3>
                 </div>
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Rechercher par nom, email ou entreprise..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -648,6 +687,24 @@ function App() {
               <div className="flex items-center gap-2 mb-4">
                 <Filter className="w-5 h-5 text-gray-600" />
                 <h3 className="font-medium text-gray-900">Filtres - Leads Solaires</h3>
+              </div>
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Rechercher par nom, email ou entreprise..."
+                  value={airtableSearchQuery}
+                  onChange={(e) => setAirtableSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                />
+                {airtableSearchQuery && (
+                  <button
+                    onClick={() => setAirtableSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
